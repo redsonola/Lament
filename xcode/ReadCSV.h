@@ -12,16 +12,16 @@
 #include <sstream>
 #include <fstream>
 
-
+//important note: this does NOT handle incorrect formats from Windows, etc.
 /*
  //use case
  ReadCSV rCSV(filename);
  rCSV.getLine();
 
- while( !rCSV.eof() && rCSV.correctFormat() )
+ while( !rCSV.eof()  )
  {
-    std::vector<char *> rCSV.getTokensLine();
-    processToken()
+    std::vector<std::string> tokens = rCSV.getTokensLine();
+    //process tokens here as you like
  }
  
  rCSV.close();

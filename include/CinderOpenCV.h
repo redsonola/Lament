@@ -1,14 +1,12 @@
 //
-//  CinderOCVConverter.h
-//  MyNewProjectYay
+//  CinderOpenCV.h
 //
-//  Created by courtney on 8/20/18.
+//
+//  Very v. v. v. slightly modified version of OpenCV cinder to work with current version OpenCV
 //
 
-#ifndef CinderOCVConverter_h
-#define CinderOCVConverter_h
-
-#define CV_RGB( r, g, b )  cvScalar( (b), (g), (r), 0 )
+#ifndef CinderOpenCV_h
+#define CinderOpenCV_h
 
 #include "cinder/ImageIo.h"
 
@@ -187,4 +185,4 @@ namespace cinder {
 
 
 
-#endif /* CinderOCVConverter_h */
+#endif /* CinderOpenCV_h */
