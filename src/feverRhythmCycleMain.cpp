@@ -1,3 +1,24 @@
+/***
+ Courtney Brown
+ 
+ Jan. 2019
+ 
+ This is the start of my new work -- fever rhythm cycle
+ 
+ ***/
+
+//osc messages
+#define ELAPSED_FRAMES_ADDR "/VideoAndOSCLab/elapsedFrames"
+#define ELAPSED_SECS_ADDR "/VideoAndOSCLab/elapsedSeconds"
+#define SYNTIEN_MESSAGE "/syntien/motion/1/scope1"
+#define WIIMOTE_ACCEL_MESSAGE_PART1 "/wii/"
+#define WIIMOTE_ACCEL_MESSAGE_PART2 "/accel/pry"
+#define WIIMOTE_BUTTON_1 "/wii/1/button/1"
+#define NOTCH_MESSAGE "/Notch/BonePosAndAccel"
+#define NOTCH_PEAK "/Notch/Peak"
+#define DERIVATIVE_OSCMESSAGE "/CBIS/Derivative"
+
+
 
 //#include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
@@ -34,14 +55,7 @@
 #define DESTHOST "127.0.0.1"
 #define DESTPORT 8888
 
-//osc messages
-#define ELAPSED_FRAMES_ADDR "/VideoAndOSCLab/elapsedFrames"
-#define ELAPSED_SECS_ADDR "/VideoAndOSCLab/elapsedSeconds"
-#define SYNTIEN_MESSAGE "/syntien/motion/1/scope1"
-#define WIIMOTE_ACCEL_MESSAGE_PART1 "/wii/"
-#define WIIMOTE_ACCEL_MESSAGE_PART2 "/accel/pry"
-#define WIIMOTE_BUTTON_1 "/wii/1/button/1"
-#define NOTCH_MESSAGE "/Notch/BonePosAndAccel"
+
 
 #define MAX_NUM_OF_WIIMOTES 6 //limitation of bluetooth class 2
 #define PHONE_ID "7" //this assumes only one phone using Syntien or some such -- can modify if you have more...
@@ -56,9 +70,9 @@ using protocol = asio::ip::udp;
 //This class demonstrates a 'hello, world' for the signal processing tree paradigm for motion capture
 //Receives wiimote data, puts an averaging filter on it, then draws the data
 //Also, w/o signal processing paradigm, this program has the functions to draw a phone but not implemented currently
-class MotionSensorSignalTreeExample : public App {
+class FeverRhythmCycleMain : public App {
 public:
-    MotionSensorSignalTreeExample();
+    FeverRhythmCycleMain();
     
     void setup() override;
     //    void mouseDown( MouseEvent event ) override;
@@ -101,13 +115,13 @@ protected:
     CRCPMotionAnalysis::PlayOSC *playOSC;
 };
 
-MotionSensorSignalTreeExample::MotionSensorSignalTreeExample() : mSender(LOCALPORT, DESTHOST, DESTPORT), mReceiver( LOCALPORT2 )
+FeverRhythmCycleMain::FeverRhythmCycleMain() : mSender(LOCALPORT, DESTHOST, DESTPORT), mReceiver( LOCALPORT2 )
 {
     
 }
 
 //outdated vestige
-void MotionSensorSignalTreeExample::sendOSC(std::string addr, float value)
+void FeverRhythmCycleMain::sendOSC(std::string addr, float value)
 {
     osc::Message msg;
     msg.setAddress(addr);
@@ -116,14 +130,14 @@ void MotionSensorSignalTreeExample::sendOSC(std::string addr, float value)
 }
 
 //this has not been implemented into signal tree paradigm yet. ah well. TODO: implement as such
-void MotionSensorSignalTreeExample::updatePhoneValues(const osc::Message &message)
+void FeverRhythmCycleMain::updatePhoneValues(const osc::Message &message)
 {
 //    std::cout << "received\n";
     addPhoneAndWiiData(message, PHONE_ID);
 }
 
 //gets data from osc message then adds wiimote data to sensors
-void MotionSensorSignalTreeExample::addPhoneAndWiiData(const osc::Message &message, std::string _id)
+void FeverRhythmCycleMain::addPhoneAndWiiData(const osc::Message &message, std::string _id)
 {
     CRCPMotionAnalysis::MocapDeviceData *sensorData;
     std::string dID = _id ;
@@ -151,7 +165,7 @@ void MotionSensorSignalTreeExample::addPhoneAndWiiData(const osc::Message &messa
 }
 
 //return sensor with id & or create one w/detected id then return that one
-CRCPMotionAnalysis::SensorData *MotionSensorSignalTreeExample::getSensor( std::string _id, int which, CRCPMotionAnalysis::MocapDeviceData::MocapDevice device )
+CRCPMotionAnalysis::SensorData *FeverRhythmCycleMain::getSensor( std::string _id, int which, CRCPMotionAnalysis::MocapDeviceData::MocapDevice device )
 {
     
     bool found = false;
@@ -182,7 +196,7 @@ CRCPMotionAnalysis::SensorData *MotionSensorSignalTreeExample::getSensor( std::s
 }
 
 //finds the id of the wiimote then adds the wiidata to ugens
-void MotionSensorSignalTreeExample::updateWiiValues(const osc::Message &message)
+void FeverRhythmCycleMain::updateWiiValues(const osc::Message &message)
 {
     //get which wii
     std::string addr = message.getAddress();
@@ -192,7 +206,7 @@ void MotionSensorSignalTreeExample::updateWiiValues(const osc::Message &message)
     addPhoneAndWiiData(message, whichWii);
 }
 
-void MotionSensorSignalTreeExample::printNotchValues(const osc::Message &message)
+void FeverRhythmCycleMain::printNotchValues(const osc::Message &message)
 {
     std::string addr = message.getAddress();
     std::cout << addr;
@@ -224,7 +238,7 @@ void MotionSensorSignalTreeExample::printNotchValues(const osc::Message &message
 }
 
 //handles notch data
-void MotionSensorSignalTreeExample::updateNotchValues(const osc::Message &message)
+void FeverRhythmCycleMain::updateNotchValues(const osc::Message &message)
 {
     //print it out. Note that for each bone, you will want to create a new sensor
 //    printNotchValues(message);
@@ -276,7 +290,7 @@ void MotionSensorSignalTreeExample::updateNotchValues(const osc::Message &messag
     }
 }
 
-void MotionSensorSignalTreeExample::createNotchMotionData(std::string _id, std::vector<float> vals)
+void FeverRhythmCycleMain::createNotchMotionData(std::string _id, std::vector<float> vals)
 {
     CRCPMotionAnalysis::MocapDeviceData *sensorData;
     
@@ -300,7 +314,7 @@ void MotionSensorSignalTreeExample::createNotchMotionData(std::string _id, std::
 }
 
 //set up osc
-void MotionSensorSignalTreeExample::setup()
+void FeverRhythmCycleMain::setup()
 {
     try{
         mSender.bind();
@@ -365,10 +379,10 @@ void MotionSensorSignalTreeExample::setup()
 
 
 
-void MotionSensorSignalTreeExample::keyDown( KeyEvent event )
+void FeverRhythmCycleMain::keyDown( KeyEvent event )
 {
     //choose a file to play OSC, if wanted.
-    if(event.getChar() == 'o')
+    if(event.getChar() == 'p')
     {
         fs::path filename = getOpenFilePath();
         playOSC = new CRCPMotionAnalysis::PlayOSC(filename.c_str(), DESTHOST, LOCALPORT2, LOCALPORT + 10);
@@ -376,7 +390,7 @@ void MotionSensorSignalTreeExample::keyDown( KeyEvent event )
 }
 
 //update entities and ugens and send OSC, if relevant
-void MotionSensorSignalTreeExample::update()
+void FeverRhythmCycleMain::update()
 {
     seconds = getElapsedSeconds(); //clock the time update is called to sync incoming messages
     
@@ -410,7 +424,7 @@ void MotionSensorSignalTreeExample::update()
 }
 
 //draw the entities
-void MotionSensorSignalTreeExample::draw()
+void FeverRhythmCycleMain::draw()
 {
     
     gl::clear( Color( 0, 0, 0 ) );
@@ -422,5 +436,5 @@ void MotionSensorSignalTreeExample::draw()
     
 }
 
-CINDER_APP( MotionSensorSignalTreeExample, RendererGl )
+CINDER_APP( FeverRhythmCycleMain, RendererGl )
 

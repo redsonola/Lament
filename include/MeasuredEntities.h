@@ -61,6 +61,9 @@ public:
         AveragingFilter *avgfilter = new AveragingFilter(signal_input);
         bUgens->push_back( avgfilter );
         
+        Derivative *derivative = new Derivative(avgfilter, 48, idz, true);
+        bUgens->push_back( derivative );
+        
         //add the visualizer
         handVisualizer = new MocapDataVisualizer( avgfilter );
         bUgens->push_back( handVisualizer );
@@ -85,7 +88,7 @@ public:
         
         const double WAIT_BETWEEN_PEAKS_DEFAULT = 0.35; //the time to wait between declaring another peak has happened in seconds
                                                //you may want to vary this btw x, y, z instead of having the values for everything depending on how it is placed.
-        peaks = new FindPeaks(WAIT_BETWEEN_PEAKS_DEFAULT,avgfilter);
+        peaks = new FindPeaks(WAIT_BETWEEN_PEAKS_DEFAULT,avgfilter, idz);
         bUgens->push_back(peaks);
         peaks->setThreshes(THRESH_DEFAULT, THRESH_DEFAULT, THRESH_DEFAULT);
     }
@@ -102,10 +105,19 @@ public:
     {
         std::vector<ci::osc::Message> msgs;
         
+        //this tests the peak -- the count is to differentiate it from the last peak
+        
+//        if( peaks->getCombinedPeak() )
+//        {
+//            std::cout << "PEAK:" << count << std::endl ;
+//            count++;
+//        }
+        
         //ok I'll do it
         for (int i=0; i<hand.size(); i++)
         {
             std::vector<ci::osc::Message> nmsgs = hand[i]->getOSC();
+
             for(int j=0; j<nmsgs.size(); j++)
             {
                 msgs.push_back(nmsgs[j]);
@@ -121,12 +133,7 @@ public:
         for(int i=0; i<hand.size(); i++)
             hand[i]->update(seconds);
         
-        //this tests the peak -- the count is to differentiate it from the last peak
-        if( peaks->getCombinedPeak() )
-        {
-            std::cout << "PEAK:" << count << std::endl ;
-            count++;
-        }
+
         
     };
 

@@ -68,13 +68,15 @@ protected:
     double xThresh, yThresh, zThresh;
     float  waitBetweenPeaks;
     bool combinedPeak; //whether there is a peak in the x y or z signals
+    float _id;
     
     Derivative derivative; //we need this to find the peaks according to matlab func. using
     
 public:
-    FindPeaks( float waitBetween, SignalAnalysis *s, int bufferSize=48) : SignalAnalysis( s, bufferSize, NULL ), derivative(s, buffersize)
+    FindPeaks( float waitBetween, SignalAnalysis *s, int id_, int bufferSize=48) : SignalAnalysis( s, bufferSize, NULL ), derivative(s, buffersize)
     {
         combinedPeak = false;
+        _id = id_;
         
         //TODO: & note--> this can be changed with a bpm, if that changes -- I have code for this, if relevant
         waitBetweenPeaks = waitBetween;
@@ -289,9 +291,15 @@ public:
         
         //TODO: add OSC messages here -- eg. if peak is true create and send a message
         
+        //this tests the peak -- the count is to differentiate it from the last peak
+        int isPeak = getCombinedPeak();
+        ci::osc::Message peakMessage;
+        peakMessage.setAddress(NOTCH_PEAK);
+        peakMessage.append(_id);
+        peakMessage.append(isPeak);
+        
         return msgs;
     }
-    
     
     
 protected:

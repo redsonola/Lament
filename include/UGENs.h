@@ -106,7 +106,7 @@ namespace CRCPMotionAnalysis {
         int getBufferSize(){return buffersize;};
         
         virtual void update(float seconds=0)
-        {
+        { 
             if( ugen != NULL ) data1 = ugen->getBuffer();
             if( ugen2 != NULL ) data2 = ugen2->getBuffer();
         };
@@ -250,6 +250,7 @@ public:
             SignalAnalysis::update(seconds);
         };
         
+        //just give it your data
         virtual std::vector<MocapDeviceData *> getBuffer(){
             return outdata1;
         };
@@ -344,10 +345,17 @@ public:
     //finds the derivative of the data
     class Derivative : public OutputSignalAnalysis
     {
+    protected:
+        bool _sendOSC;
+        int _id;
     public:
 
-        Derivative(SignalAnalysis *s1, int bufsize) : OutputSignalAnalysis(s1, bufsize, NULL)
-        {};
+        Derivative(SignalAnalysis *s1, int bufsize, int sensorID=0, bool sendOSC=false) : OutputSignalAnalysis(s1, bufsize, NULL)
+        {
+            _sendOSC = sendOSC;
+            useAccel = true;
+            _id = sensorID;
+        };
         
         //perform the derivative here...
         virtual void update(float seconds=0)
@@ -395,6 +403,51 @@ public:
         std::vector<ci::osc::Message> getOSC()
         {
             std::vector<ci::osc::Message> msgs;
+
+            
+            if(_sendOSC)
+            {
+                for( int i=0; i<outdata1.size(); i++ )
+                {
+                    ci::osc::Message msg;
+                    msg.setAddress(DERIVATIVE_OSCMESSAGE);
+                    std::cout << msg.getAddress() << "   ";
+
+                    msg.append(int(_id));
+                    std::cout << msg.getArgInt32(0) << ",";
+                
+                    msg.append(double(outdata1[i]->getData(MocapDeviceData::DataIndices::INDEX)));
+                    std::cout << msg.getArgDouble(1) << ",";
+                    
+                    msg.append(float(outdata1[i]->getData(MocapDeviceData::DataIndices::TIME_STAMP)));
+                    std::cout << msg.getArgFloat(2) << ",";
+
+                
+                    if( useAccel )
+                    {
+                        int h = 3;
+                        for(int j= MocapDeviceData::DataIndices::ACCELX; j<MocapDeviceData::DataIndices::ACCELZ; j++)
+                        {
+                            msg.append(float(outdata1[i]->getData(j)));
+                            std::cout << msg.getArgFloat(h) << ",";
+                            h++;
+
+                        }
+                    }
+                
+                    //derivative of bone angles
+                    for(int j= MocapDeviceData::DataIndices::BONEANGLE_TILT; j<=MocapDeviceData::DataIndices::BONEANGLE_TILT+2; j++)
+                    {
+                        msg.append(double(outdata1[i]->getData(j)));
+                        std::cout << outdata1[i]->getData(j) << ",";
+
+                    }
+                    std::cout << std::endl;
+                    
+                    msgs.push_back(msg);
+                    
+                }
+            }
             return msgs;
         };
     };
@@ -487,6 +540,8 @@ public:
             alpha.push_back(1.0f - sample->getData(MocapDeviceData::DataIndices::BONEANGLE_LATERAL));  //color it differently than the accel values
         }
     };
+    
+    //IDEA -- ratio between limbs? try wekinator, gtk -- closed/open, up/down -- can implement all these measures -- also in ITM -- verticality
     
 };
 

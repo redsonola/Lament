@@ -18,7 +18,7 @@
 		00B9955B1B128DF400A5C623 /* IOSurface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00B995591B128DF400A5C623 /* IOSurface.framework */; };
 		14EFE1F4244A4E379861D3C0 /* Osc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 82371CBEC1504F3D899B0B28 /* Osc.cpp */; };
 		5323E6B20EAFCA74003A9687 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5323E6B10EAFCA74003A9687 /* CoreVideo.framework */; };
-		6969B250F2BD4ECF914263DB /* VideoAndOSCLabAPP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4502019EE62D43FEA18F5E6E /* VideoAndOSCLabAPP.cpp */; };
+		6969B250F2BD4ECF914263DB /* feverRhythmCycleMain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4502019EE62D43FEA18F5E6E /* feverRhythmCycleMain.cpp */; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
 		BCA0F153EE9A4611ADBC5AFB /* CinderApp.icns in Resources */ = {isa = PBXBuildFile; fileRef = BFCC0788C77649EDAAB9C8A2 /* CinderApp.icns */; };
 		F12714652140C1BC006BFD00 /* BlackDot.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = F12714642140C1BC006BFD00 /* BlackDot.mp4 */; };
@@ -39,7 +39,7 @@
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		44D1AD7ACFE544D9B32FA9CB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		4502019EE62D43FEA18F5E6E /* VideoAndOSCLabAPP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = VideoAndOSCLabAPP.cpp; path = ../src/VideoAndOSCLabAPP.cpp; sourceTree = "<group>"; };
+		4502019EE62D43FEA18F5E6E /* feverRhythmCycleMain.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = feverRhythmCycleMain.cpp; path = ../src/feverRhythmCycleMain.cpp; sourceTree = "<group>"; };
 		5323E6B10EAFCA74003A9687 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = /System/Library/Frameworks/CoreVideo.framework; sourceTree = "<absolute>"; };
 		7CC841DB47604772ADD4F519 /* Osc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Osc.h; path = ../../../blocks/OSC/src/cinder/osc/Osc.h; sourceTree = "<group>"; };
 		82371CBEC1504F3D899B0B28 /* Osc.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.cpp; name = Osc.cpp; path = ../../../blocks/OSC/src/cinder/osc/Osc.cpp; sourceTree = "<group>"; };
@@ -93,7 +93,7 @@
 		080E96DDFE201D6D7F000001 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				4502019EE62D43FEA18F5E6E /* VideoAndOSCLabAPP.cpp */,
+				4502019EE62D43FEA18F5E6E /* feverRhythmCycleMain.cpp */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -245,7 +245,7 @@
 			attributes = {
 				LastUpgradeCheck = 0920;
 			};
-			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "Not" */;
+			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "feverRhythmCycle" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 1;
@@ -281,7 +281,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6969B250F2BD4ECF914263DB /* VideoAndOSCLabAPP.cpp in Sources */,
+				6969B250F2BD4ECF914263DB /* feverRhythmCycleMain.cpp in Sources */,
 				14EFE1F4244A4E379861D3C0 /* Osc.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -527,7 +527,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C01FCF4E08A954540054247B /* Build configuration list for PBXProject "Not" */ = {
+		C01FCF4E08A954540054247B /* Build configuration list for PBXProject "feverRhythmCycle" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C01FCF4F08A954540054247B /* Debug */,
