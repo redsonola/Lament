@@ -215,6 +215,10 @@ public:
     {
     protected:
         std::vector<MocapDeviceData *> outdata1;
+        bool _sendOSC;
+        int _id;
+        std::string whichBodyPart;
+
         
         void eraseData()
         {
@@ -225,9 +229,11 @@ public:
         };
     public:
         
-        OutputSignalAnalysis(SignalAnalysis *s1, int bufsize, SignalAnalysis *s2 = NULL) : SignalAnalysis(s1, bufsize, s2)
+        OutputSignalAnalysis(SignalAnalysis *s1, int bufsize, int sensorID=0, std::string whichPart="", bool sendOSC=false, SignalAnalysis *s2 = NULL) : SignalAnalysis(s1, bufsize, s2)
         {
-            
+            whichBodyPart = whichPart;
+            _id=sensorID;
+            _sendOSC = sendOSC;
         }
         
         //puts in accel data slots -- all other data left alone -- ALSO only
@@ -265,7 +271,7 @@ public:
         int windowSize;
     public:
         
-        AveragingFilter(SignalAnalysis *s1, int w=10, int bufsize=48 ) : OutputSignalAnalysis(s1, bufsize)
+        AveragingFilter(SignalAnalysis *s1, int w=10, int bufsize=48, int sensorID=0, std::string whichPart="", bool sendOSC=false ) : OutputSignalAnalysis(s1, bufsize, sensorID, whichPart, sendOSC)
         {
             windowSize = w;
         };
@@ -335,26 +341,74 @@ public:
         }
         
         //if you wanted to send the signal somewhere
+        //if you wanted to send the signal somewhere
         std::vector<ci::osc::Message> getOSC()
         {
             std::vector<ci::osc::Message> msgs;
+            
+            
+            if(_sendOSC)
+            {
+                for( int i=0; i<outdata1.size(); i++ )
+                {
+                    
+                    ci::osc::Message msg;
+                    msg.setAddress(SIGAVG_OSCMESSAGE);
+//                    std::cout << msg.getAddress() << "   ";
+                    
+                    msg.append(int(_id));
+//                    std::cout << msg.getArgInt32(0) << ",";
+                    
+//                    std::cout << whichBodyPart << ",";
+                    
+                    msg.append(double(outdata1[i]->getData(MocapDeviceData::DataIndices::INDEX)));
+//                    std::cout << msg.getArgDouble(1) << ",";
+                    
+                    msg.append(float(outdata1[i]->getData(MocapDeviceData::DataIndices::TIME_STAMP)));
+//                    std::cout << msg.getArgFloat(2) << ",";
+                    
+                    
+                    if( useAccel )
+                    {
+                        int h = 3;
+                        for(int j= MocapDeviceData::DataIndices::ACCELX; j<=MocapDeviceData::DataIndices::ACCELZ; j++)
+                        {
+                            msg.append(float(outdata1[i]->getData(j)));
+//                            std::cout << msg.getArgFloat(h) << ",";
+                            h++;
+                            
+                        }
+                    }
+                    
+                    //derivative of bone angles
+                    for(int j= MocapDeviceData::DataIndices::BONEANGLE_TILT; j<=MocapDeviceData::DataIndices::BONEANGLE_TILT; j++)
+                    {
+                        msg.append(float(outdata1[i]->getData(j)));
+//                        std::cout << outdata1[i]->getData(j) << ",";
+                        
+                    }
+                    std::cout << std::endl;
+                    
+                    msgs.push_back(msg);
+                    
+                }
+            }
             return msgs;
         };
+
     };
     
     //finds the derivative of the data
     class Derivative : public OutputSignalAnalysis
     {
-    protected:
-        bool _sendOSC;
-        int _id;
     public:
 
-        Derivative(SignalAnalysis *s1, int bufsize, int sensorID=0, bool sendOSC=false) : OutputSignalAnalysis(s1, bufsize, NULL)
+        Derivative(SignalAnalysis *s1, int bufsize, int sensorID=0, std::string whichPart="", bool sendOSC=false) : OutputSignalAnalysis(s1, bufsize, sensorID, whichPart, sendOSC)
         {
-            _sendOSC = sendOSC;
+//            _sendOSC = sendOSC;
             useAccel = true;
-            _id = sensorID;
+//            _id = sensorID;
+//            whichBodyPart = whichPart;
         };
         
         //perform the derivative here...
@@ -371,7 +425,7 @@ public:
                 
                 if( useAccel )
                 {
-                    for(int j= MocapDeviceData::DataIndices::ACCELX; j<MocapDeviceData::DataIndices::ACCELZ; j++)
+                    for(int j= MocapDeviceData::DataIndices::ACCELX; j<=MocapDeviceData::DataIndices::ACCELZ; j++)
                         mdd->setData(j, data1[i]->getData(j)-data1[i-1]->getData(j));
                 }
                 
@@ -409,37 +463,40 @@ public:
             {
                 for( int i=0; i<outdata1.size(); i++ )
                 {
+                    
                     ci::osc::Message msg;
                     msg.setAddress(DERIVATIVE_OSCMESSAGE);
-                    std::cout << msg.getAddress() << "   ";
+//                    std::cout << msg.getAddress() << "   ";
 
                     msg.append(int(_id));
-                    std::cout << msg.getArgInt32(0) << ",";
+//                    std::cout << msg.getArgInt32(0) << ",";
+                    
+//                    std::cout << whichBodyPart << ",";
                 
                     msg.append(double(outdata1[i]->getData(MocapDeviceData::DataIndices::INDEX)));
-                    std::cout << msg.getArgDouble(1) << ",";
+//                    std::cout << msg.getArgDouble(1) << ",";
                     
                     msg.append(float(outdata1[i]->getData(MocapDeviceData::DataIndices::TIME_STAMP)));
-                    std::cout << msg.getArgFloat(2) << ",";
+//                    std::cout << msg.getArgFloat(2) << ",";
 
                 
                     if( useAccel )
                     {
                         int h = 3;
-                        for(int j= MocapDeviceData::DataIndices::ACCELX; j<MocapDeviceData::DataIndices::ACCELZ; j++)
+                        for(int j= MocapDeviceData::DataIndices::ACCELX; j<=MocapDeviceData::DataIndices::ACCELZ; j++)
                         {
                             msg.append(float(outdata1[i]->getData(j)));
-                            std::cout << msg.getArgFloat(h) << ",";
+//                            std::cout << msg.getArgFloat(h) << ",";
                             h++;
 
                         }
                     }
                 
                     //derivative of bone angles
-                    for(int j= MocapDeviceData::DataIndices::BONEANGLE_TILT; j<=MocapDeviceData::DataIndices::BONEANGLE_TILT+2; j++)
+                    for(int j= MocapDeviceData::DataIndices::BONEANGLE_TILT; j<=MocapDeviceData::DataIndices::BONEANGLE_TILT; j++)
                     {
-                        msg.append(double(outdata1[i]->getData(j)));
-                        std::cout << outdata1[i]->getData(j) << ",";
+                        msg.append(float(outdata1[i]->getData(j)));
+//                        std::cout << outdata1[i]->getData(j) << ",";
 
                     }
                     std::cout << std::endl;

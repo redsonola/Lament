@@ -17,6 +17,7 @@
 #define NOTCH_MESSAGE "/Notch/BonePosAndAccel"
 #define NOTCH_PEAK "/Notch/Peak"
 #define DERIVATIVE_OSCMESSAGE "/CBIS/Derivative"
+#define SIGAVG_OSCMESSAGE "/CBIS/Average"
 
 
 

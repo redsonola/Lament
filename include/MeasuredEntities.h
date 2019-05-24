@@ -23,10 +23,12 @@ protected:
 
     bool handInit = false; //whether we have set up the hand ugens
     int handID; //this will correspond to wii mote # or some OSC id'ing the sensor
+    std::string whichBodyPart; //which bone it is
+    
     
     int count=0;
 public:
-    enum BodyPart{ HAND=0 }; //add body parts here. Doesn't have to be a body I suppose but you get what I mean..
+    enum BodyPart{ HAND=0 }; //add body parts here. Doesn't have to be a body I suppose but you get what I mean.. --> need to change
 
     Entity(){
         handInit = false;
@@ -40,6 +42,8 @@ public:
     void addSensorBodyPart(int idz, SensorData *sensor, BodyPart whichBody )
     {
         //which body part is the sensor of?
+        whichBodyPart = sensor->getDeviceID();  //yip for now.
+        
         std::vector<UGEN * > *bUgens; //the ugen vector to add ugens to
         switch (whichBody)
         {
@@ -58,10 +62,12 @@ public:
         bUgens->push_back( signal_input );
         
         //add an averaging filter
-        AveragingFilter *avgfilter = new AveragingFilter(signal_input);
+        //AveragingFilter(SignalAnalysis *s1, int w=10, int bufsize=48, int sensorID=0, std::string whichPart="", bool sendOSC=false )
+        
+        AveragingFilter *avgfilter = new AveragingFilter(signal_input, 5, 48, idz, whichBodyPart, true);
         bUgens->push_back( avgfilter );
         
-        Derivative *derivative = new Derivative(avgfilter, 48, idz, true);
+        Derivative *derivative = new Derivative(avgfilter, 48, idz, whichBodyPart, true);
         bUgens->push_back( derivative );
         
         //add the visualizer
