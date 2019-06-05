@@ -271,7 +271,7 @@ public:
         int windowSize;
     public:
         
-        AveragingFilter(SignalAnalysis *s1, int w=10, int bufsize=48, int sensorID=0, std::string whichPart="", bool sendOSC=false ) : OutputSignalAnalysis(s1, bufsize, sensorID, whichPart, sendOSC)
+        AveragingFilter(SignalAnalysis *s1, int w=10, int bufsize=16, int sensorID=0, std::string whichPart="", bool sendOSC=false ) : OutputSignalAnalysis(s1, bufsize, sensorID, whichPart, sendOSC)
         {
             windowSize = w;
         };
@@ -381,13 +381,13 @@ public:
                     }
                     
                     //derivative of bone angles
-                    for(int j= MocapDeviceData::DataIndices::BONEANGLE_TILT; j<=MocapDeviceData::DataIndices::BONEANGLE_TILT; j++)
+                    for(int j= MocapDeviceData::DataIndices::BONEANGLE_TILT; j<=MocapDeviceData::DataIndices::BONEANGLE_LATERAL; j++)
                     {
                         msg.append(float(outdata1[i]->getData(j)));
 //                        std::cout << outdata1[i]->getData(j) << ",";
                         
                     }
-                    std::cout << std::endl;
+//                    std::cout << std::endl;
                     
                     msgs.push_back(msg);
                     
@@ -493,13 +493,13 @@ public:
                     }
                 
                     //derivative of bone angles
-                    for(int j= MocapDeviceData::DataIndices::BONEANGLE_TILT; j<=MocapDeviceData::DataIndices::BONEANGLE_TILT; j++)
+                    for(int j= MocapDeviceData::DataIndices::BONEANGLE_TILT; j<=MocapDeviceData::DataIndices::BONEANGLE_LATERAL; j++)
                     {
                         msg.append(float(outdata1[i]->getData(j)));
 //                        std::cout << outdata1[i]->getData(j) << ",";
 
                     }
-                    std::cout << std::endl;
+//                    std::cout << std::endl;
                     
                     msgs.push_back(msg);
                     
@@ -593,7 +593,8 @@ public:
 //           std::cout << sample->toString() << std::endl;
             
             //ok now to screens
-            points.push_back(ci::vec2((sample->getData(MocapDeviceData::DataIndices::BONEANGLE_TILT)*ci::app::getWindowWidth()/2)+ci::app::getWindowWidth()/2, (sample->getData(MocapDeviceData::DataIndices::BONEANGLE_ROTATE)*ci::app::getWindowHeight())+ci::app::getWindowHeight()/2));
+//            points.push_back(ci::vec2((sample->getData(MocapDeviceData::DataIndices::BONEANGLE_TILT)*ci::app::getWindowWidth()/2)+ci::app::getWindowWidth()/2, (sample->getData(MocapDeviceData::DataIndices::BONEANGLE_ROTATE)*ci::app::getWindowHeight())+ci::app::getWindowHeight()/2));
+            points.push_back(ci::vec2((sample->getData(MocapDeviceData::DataIndices::BONEANGLE_TILT)*ci::app::getWindowWidth()/2)+ci::app::getWindowWidth()/4, (sample->getData(MocapDeviceData::DataIndices::BONEANGLE_ROTATE)*ci::app::getWindowHeight())+ci::app::getWindowHeight()/2));
             alpha.push_back(1.0f - sample->getData(MocapDeviceData::DataIndices::BONEANGLE_LATERAL));  //color it differently than the accel values
         }
     };

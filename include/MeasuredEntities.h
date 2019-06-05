@@ -64,13 +64,13 @@ public:
         //add an averaging filter
         //AveragingFilter(SignalAnalysis *s1, int w=10, int bufsize=48, int sensorID=0, std::string whichPart="", bool sendOSC=false )
         
-        AveragingFilter *avgfilter = new AveragingFilter(signal_input, 5, 48, idz, whichBodyPart, true);
+        AveragingFilter *avgfilter = new AveragingFilter(signal_input, 3, 16, idz, whichBodyPart, true);
         bUgens->push_back( avgfilter );
         
-        Derivative *derivative = new Derivative(avgfilter, 48, idz, whichBodyPart, true);
+        Derivative *derivative = new Derivative(avgfilter, 16, idz, whichBodyPart, true);
         bUgens->push_back( derivative );
-        
-        //add the visualizer
+  
+//        //add the visualizer
         handVisualizer = new MocapDataVisualizer( avgfilter );
         bUgens->push_back( handVisualizer );
         

@@ -19,6 +19,9 @@
 #define DERIVATIVE_OSCMESSAGE "/CBIS/Derivative"
 #define SIGAVG_OSCMESSAGE "/CBIS/Average"
 
+#define SEND_TO_WEKINATOR 1
+#define WEK_MESSAGE "/wek/inputs"
+
 
 
 //#include <opencv2/opencv.hpp>
@@ -55,6 +58,9 @@
 #define LOCALPORT2 8887
 #define DESTHOST "127.0.0.1"
 #define DESTPORT 8888
+#define WEKPORT 6448
+#define LOCALPORT3 8889
+
 
 
 
@@ -88,7 +94,8 @@ protected:
     SurfaceRef                 mSurface;
     
     osc::SenderUdp             mSender;
-    
+    osc::SenderUdp             mWekSender;
+
     void sendOSC(std::string addr, float value);
     
     Receiver mReceiver; //new
@@ -116,7 +123,7 @@ protected:
     CRCPMotionAnalysis::PlayOSC *playOSC;
 };
 
-FeverRhythmCycleMain::FeverRhythmCycleMain() : mSender(LOCALPORT, DESTHOST, DESTPORT), mReceiver( LOCALPORT2 )
+FeverRhythmCycleMain::FeverRhythmCycleMain() : mSender(LOCALPORT, DESTHOST, DESTPORT), mReceiver( LOCALPORT2 ), mWekSender(LOCALPORT3, DESTHOST, WEKPORT)
 {
     
 }
@@ -255,11 +262,155 @@ void FeverRhythmCycleMain::updateNotchValues(const osc::Message &message)
 
      Only measured bones have all 6 values. Static bones w.o notches attached are reported but only have position info
      
+     THis function also forwards data to wekinator - TODO: perhaps refactor out
+     
      ***/
     
     std::string bone = "";
+    osc::Message wekMsg;
+    
+//    std::cout << message << std::endl;
 
-    for ( int i=2; i<message.getNumArgs(); i++)
+/*
+address: /Notch/BonePosAndAccel
+    Sender Ip Address: 192.168.1.3
+    <FLOAT>: 20
+    <INTEGER_32>: 0
+    <STRING>: Root
+    <FLOAT>: 0
+    <FLOAT>: 0
+    <FLOAT>: 0
+    <STRING>: Hip
+    <FLOAT>: 0.00390107
+    <FLOAT>: -0.0765789
+    <FLOAT>: -0.00750544
+    <FLOAT>: -0.00207619
+    <FLOAT>: 0.0386578
+    <FLOAT>: 0.0100631
+    <STRING>: Tummy
+    <FLOAT>: -0.0111514
+    <FLOAT>: 0.230822
+    <FLOAT>: 0.0350948
+    <STRING>: ChestBottom
+    <FLOAT>: -0.0280236
+    <FLOAT>: -0.0667842
+    <FLOAT>: 0.0630484
+    <FLOAT>: -0.0170402
+    <FLOAT>: 0.396716
+    <FLOAT>: 0.0359006
+    <STRING>: ChestTop
+    <FLOAT>: -0.0191746
+    <FLOAT>: 0.4962
+    <FLOAT>: 0.025989
+    <STRING>: LeftCollar
+    <FLOAT>: 0.136829
+    <FLOAT>: 0.480698
+    <FLOAT>: 0.0385829
+    <STRING>: LeftUpperArm
+    <FLOAT>: -0.283832
+    <FLOAT>: -0.0355547
+    <FLOAT>: -0.135343
+    <FLOAT>: 0.165057
+    <FLOAT>: 0.226576
+    <FLOAT>: 0.0566382
+    <STRING>: LeftForeArm
+    <FLOAT>: 0.278568
+    <FLOAT>: 0.1125
+    <FLOAT>: 0.0132517
+    <FLOAT>: 0.164294
+    <FLOAT>: -0.0829402
+    <FLOAT>: 0.0876608
+    <STRING>: LeftHand
+    <FLOAT>: 0.160795
+    <FLOAT>: -0.232138
+    <FLOAT>: 0.102758
+    <STRING>: RightCollar
+    <FLOAT>: -0.174324
+    <FLOAT>: 0.471908
+    <FLOAT>: 0.0173598
+    <STRING>: RightUpperArm
+    <FLOAT>: 0.214931
+    <FLOAT>: -0.00784064
+    <FLOAT>: -0.329319
+    <FLOAT>: -0.225098
+    <FLOAT>: 0.220704
+    <FLOAT>: 0.0217642
+    <STRING>: RightForeArm
+    <FLOAT>: -0.901787
+    <FLOAT>: -0.342038
+    <FLOAT>: 0.0815372
+    <FLOAT>: -0.300555
+    <FLOAT>: -0.0756913
+    <FLOAT>: 0.0785047
+    <STRING>: RightHand
+    <FLOAT>: -0.333907
+    <FLOAT>: -0.219269
+    <FLOAT>: 0.106307
+    <STRING>: Neck
+    <FLOAT>: -0.0218852
+    <FLOAT>: 0.622546
+    <FLOAT>: 0.0134013
+    <STRING>: Head
+    <FLOAT>: -0.0256952
+    <FLOAT>: 0.750411
+    <FLOAT>: 0.0163005
+    <STRING>: LeftHip
+    <FLOAT>: 0
+    <FLOAT>: 0
+    <FLOAT>: 0
+    <STRING>: LeftThigh
+    <FLOAT>: 0
+    <FLOAT>: -0.422
+    <FLOAT>: 0
+    <STRING>: LeftLowerLeg
+    <FLOAT>: 0
+    <FLOAT>: -0.865
+    <FLOAT>: 0
+    <STRING>: LeftFootTop
+    <FLOAT>: 0
+    <FLOAT>: -0.905
+    <FLOAT>: 0.1047
+    <STRING>: LeftFootFront
+    <FLOAT>: 0
+    <FLOAT>: -0.9395
+    <FLOAT>: 0.1978
+    <STRING>: LeftHeel
+    <FLOAT>: 0
+    <FLOAT>: -0.9285
+    <FLOAT>: -0.0592
+    <STRING>: RightHip
+    <FLOAT>: 0
+    <FLOAT>: 0
+    <FLOAT>: 0
+    <STRING>: RightThigh
+    <FLOAT>: 0
+    <FLOAT>: -0.422
+    <FLOAT>: 0
+    <STRING>: RightLowerLeg
+    <FLOAT>: 0
+    <FLOAT>: -0.865
+    <FLOAT>: 0
+    <STRING>: RightFootTop
+    <FLOAT>: 0
+    <FLOAT>: -0.905
+    <FLOAT>: 0.1047
+    <STRING>: RightFootFront
+    <FLOAT>: 0
+    <FLOAT>: -0.9395
+    <FLOAT>: 0.1978
+    <STRING>: RightHeel
+    <FLOAT>: 0
+    <FLOAT>: -0.9285
+    <FLOAT>: -0.0592
+*/
+    
+    if(SEND_TO_WEKINATOR)
+    {
+        wekMsg.setAddress(WEK_MESSAGE);
+    }
+    
+
+    for ( int i=1; i<message.getNumArgs(); i++)
     {
         ci::osc::ArgType type_ = message.getArgType(i);
         
@@ -267,6 +418,7 @@ void FeverRhythmCycleMain::updateNotchValues(const osc::Message &message)
         {
             
             bone = message.getArgString(i);
+            
             
             i++;
             bool end_val = false;
@@ -282,13 +434,26 @@ void FeverRhythmCycleMain::updateNotchValues(const osc::Message &message)
             }
             i-=2; //will always return 2 more than needed
             
+
+            
             if(values.size() >= 6) //this is then, a measured value
             {
                 createNotchMotionData(bone, values);
             }
+            
+            //if sending to wekinator
+            //append to message and send to wek, if relevant
+            if(SEND_TO_WEKINATOR && values.size() >= 6)
+            {
+                for(int i=0; i<values.size(); i++)
+                    wekMsg.append(values[i]);
+            }
         }
-        
+
+
     }
+    if(SEND_TO_WEKINATOR)
+        mWekSender.send(wekMsg);
 }
 
 void FeverRhythmCycleMain::createNotchMotionData(std::string _id, std::vector<float> vals)
@@ -319,6 +484,15 @@ void FeverRhythmCycleMain::setup()
 {
     try{
         mSender.bind();
+    }
+    catch( osc::Exception &e)
+    {
+        CI_LOG_E( "Error binding" << e.what() << " val: " << e.value() );
+        quit();
+    }
+    
+    try{
+        mWekSender.bind();
     }
     catch( osc::Exception &e)
     {
