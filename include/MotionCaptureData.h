@@ -37,7 +37,7 @@ class MocapDeviceData
         virtual double getAccelMin(){ return WIIMOTE_ACCELMIN; };
     public:
                                                                                                                 //see documentation of these angles in the main
-        enum DataIndices { INDEX=0, TIME_STAMP=1, ACCELX=2, ACCELY=3, ACCELZ=4, GYROX=11, GYROY=12, GYROZ=13, BONEANGLE_TILT=14, BONEANGLE_ROTATE=15, BONEANGLE_LATERAL=16, QX=20, QY=21, QZ=22, QA=23 };
+        enum DataIndices { INDEX=0, TIME_STAMP=1, ACCELX=2, ACCELY=3, ACCELZ=4, GYROX=11, GYROY=12, GYROZ=13, BONEANGLE_TILT=14, BONEANGLE_ROTATE=15, BONEANGLE_LATERAL=16, RELATIVE_TILT=17, RELATIVE_ROTATE=18, RELATIVE_LATERAL=19, ANGVEL_TILT=20, ANGVEL_ROTATE=21, ANGVEL_LATERAL=22, QX=23, QY=24, QZ=25, QA=26 };
         enum MocapDevice { WIIMOTE=0, IPHONE=1, NOTCH=2 };
     
         MocapDevice getDeviceType()
@@ -169,6 +169,11 @@ class MocapDeviceData
             quaternion[2] = z;
             quaternion[3] = angle;
             
+        };
+    
+        inline ci::vec3 getRelativeBoneAngles()
+        {
+            return ci::vec3(getData(RELATIVE_TILT), getData(RELATIVE_ROTATE), getData(RELATIVE_LATERAL));
         };
         
         MocapDeviceData()

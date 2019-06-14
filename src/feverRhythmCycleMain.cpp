@@ -435,8 +435,8 @@ address: /Notch/BonePosAndAccel
             i-=2; //will always return 2 more than needed
             
 
-            
-            if(values.size() >= 6) //this is then, a measured value
+            const int NUMBER_OFVALUES_NEEDED_TOBE_LIVE = 6; //just sayin'
+            if(values.size() >= NUMBER_OFVALUES_NEEDED_TOBE_LIVE) //this is then, a measured value
             {
                 createNotchMotionData(bone, values);
             }
@@ -474,6 +474,12 @@ void FeverRhythmCycleMain::createNotchMotionData(std::string _id, std::vector<fl
     for(int i= 0; i<3; i++){
         sensorData->setData(CRCPMotionAnalysis::MocapDeviceData::DataIndices::ACCELX+i, vals[i]);
         sensorData->setData(CRCPMotionAnalysis::MocapDeviceData::DataIndices::BONEANGLE_TILT+i, vals[i+3]);
+        if(vals.size() > 6) //make compatible with previous recordings... I guess
+        {
+            sensorData->setData(CRCPMotionAnalysis::MocapDeviceData::DataIndices::RELATIVE_TILT+i, vals[i+6]);
+            sensorData->setData(CRCPMotionAnalysis::MocapDeviceData::DataIndices::ANGVEL_TILT+i, vals[i+9]);
+        }
+        else std::cout << "Using depreciated apps & sensor recordings....\n";
     }
     
     sensor->addSensorData(sensorData);
@@ -611,5 +617,11 @@ void FeverRhythmCycleMain::draw()
     
 }
 
-CINDER_APP( FeverRhythmCycleMain, RendererGl )
+CINDER_APP( FeverRhythmCycleMain, RendererGl,
+           []( FeverRhythmCycleMain::Settings *settings ) //note: this part is to fix the display after updating OS X 1/15/18
+           {
+               settings->setHighDensityDisplayEnabled( true );
+               settings->setTitle("Fever Rhythm Cycle");
+//               settings->setFrameRate(FRAMERATE); //set fastest framerate
+           } )
 

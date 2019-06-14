@@ -314,9 +314,15 @@ public:
                     mdd->setData(MocapDeviceData::DataIndices::ACCELZ, mocapDeviceAvg(data1, start, end, MocapDeviceData::DataIndices::ACCELZ));
                 }
                 
-                for(int i= MocapDeviceData::DataIndices::BONEANGLE_TILT; i<=MocapDeviceData::DataIndices::BONEANGLE_TILT+2; i++)
+                for(int j= MocapDeviceData::DataIndices::BONEANGLE_TILT; j<=MocapDeviceData::DataIndices::BONEANGLE_TILT+2; j++)
                 {
-                    mdd->setData(i, mocapDeviceAvg(data1, start, end, i));
+                    mdd->setData(j, mocapDeviceAvg(data1, start, end, j));
+                }
+                
+                //derivative of bone angles
+                for(int j= MocapDeviceData::DataIndices::RELATIVE_TILT; j<=MocapDeviceData::DataIndices::RELATIVE_LATERAL; j++)
+                {
+                    mdd->setData(j, mocapDeviceAvg(data1, start, end, j));
                 }
 
 
@@ -387,8 +393,17 @@ public:
 //                        std::cout << outdata1[i]->getData(j) << ",";
                         
                     }
+                    
+                    //derivative of bone angles
+                    for(int j= MocapDeviceData::DataIndices::RELATIVE_TILT; j<=MocapDeviceData::DataIndices::RELATIVE_LATERAL; j++)
+                    {
+                        msg.append(float(outdata1[i]->getData(j)));
+//                        std::cout << outdata1[i]->getData(j) << ",";
+                        
+                    }
 //                    std::cout << std::endl;
                     
+//                    std::cout << msg << std::endl;
                     msgs.push_back(msg);
                     
                 }
@@ -431,6 +446,13 @@ public:
                 
                 //derivative of bone angles
                 for(int j= MocapDeviceData::DataIndices::BONEANGLE_TILT; j<=MocapDeviceData::DataIndices::BONEANGLE_TILT+2; j++)
+                {
+                    if(data1[i]->getData(j)!=NO_DATA)
+                        mdd->setData(j, data1[i]->getData(j)-data1[i-1]->getData(j));
+                }
+                
+                //relative angle to parent bone
+                for(int j= MocapDeviceData::DataIndices::RELATIVE_TILT; j<=MocapDeviceData::DataIndices::RELATIVE_LATERAL; j++)
                 {
                     if(data1[i]->getData(j)!=NO_DATA)
                         mdd->setData(j, data1[i]->getData(j)-data1[i-1]->getData(j));
@@ -492,14 +514,24 @@ public:
                         }
                     }
                 
-                    //derivative of bone angles
+                    //derivative of bone positions
                     for(int j= MocapDeviceData::DataIndices::BONEANGLE_TILT; j<=MocapDeviceData::DataIndices::BONEANGLE_LATERAL; j++)
                     {
                         msg.append(float(outdata1[i]->getData(j)));
 //                        std::cout << outdata1[i]->getData(j) << ",";
 
                     }
-//                    std::cout << std::endl;
+//
+                    //relative angle to parent bone
+                    for(int j= MocapDeviceData::DataIndices::RELATIVE_TILT; j<=MocapDeviceData::DataIndices::RELATIVE_LATERAL; j++)
+                    {
+                        msg.append(float(outdata1[i]->getData(j)));
+                        //                        std::cout << outdata1[i]->getData(j) << ",";
+                        
+                    }
+                    
+                    
+                    std::cout << std::endl;
                     
                     msgs.push_back(msg);
                     
@@ -545,7 +577,7 @@ public:
         };
         
         //visualize the data
-        void draw()
+        virtual void draw()
         {
             float circleSize = 2;
             for(int i=1; i<points.size(); i++)
@@ -554,8 +586,12 @@ public:
 
                 ci::gl::drawLine(points[i-1], points[i]);
                 ci::gl::drawSolidCircle(points[i], circleSize);
+                
             }
+            
+
         };
+        
         
         //if you wanted to send something somewhere... prob. not
         std::vector<ci::osc::Message> getOSC()
@@ -602,6 +638,346 @@ public:
     //IDEA -- ratio between limbs? try wekinator, gtk -- closed/open, up/down -- can implement all these measures -- also in ITM -- verticality
     
 };
+    
+    
+    //visualizes one bone
+    class MocapDataVisualizerNotchFigure2DBone : public MocapDataVisualizer
+    {
+    protected:
+        std::string _name;
+        MocapDataVisualizerNotchFigure2DBone *_parent;
+        std::vector<ci::vec3> _angles;
+        ci::vec3 _curAnchorPos; //this will be really vec2 for now... -- this is where the child bone connects to -- must keep track to maintin figure integrity
+        ci::vec3 _boneLength;
+        std::string _parentName;
+        
+    public:
+        MocapDataVisualizerNotchFigure2DBone(std::string name, ci::vec3 startAnchorPos, ci::vec3 boneLength, std::string parentName, OutputSignalAnalysis *s1=NULL, MocapDataVisualizerNotchFigure2DBone *parent=NULL, int bufsize=48, SignalAnalysis *s2 = NULL)  : MocapDataVisualizer(s1, 0, bufsize, s2)
+        {
+            _name = name;
+            _parent = parent;
+            maxDraw = 1;
+            _curAnchorPos = startAnchorPos;
+            _boneLength = boneLength; //the x value is the thickness, the y value is the length, z also contributes to thickness in 3d, ignored in 2d test
+            _parentName = parentName;
+        };
+        
+        void setParent(MocapDataVisualizerNotchFigure2DBone *parent)
+        {
+            _parent = parent;
+        };
+        
+        std::string getParentName()
+        {
+            return _parentName;
+        }
+        
+        void setSignal(OutputSignalAnalysis *s1)
+        {
+            ugen=s1;
+        };
+        
+        virtual void update(float seconds = 0)
+        {
+            std::vector<MocapDeviceData *> buffer = ugen->getBuffer();
+            if(buffer.size()<maxDraw) return; //ah well I don't want to handle smaller buffer sizes for this function. feel free to implement that.
+            
+            points.clear();
+            alpha.clear();
+            _angles.clear();
+            
+            for(int i=buffer.size()-this->getNewSampleCount(); i<buffer.size(); i++)
+            {
+                MocapDeviceData *sample = buffer[i];
+                _angles.push_back( sample->getRelativeBoneAngles() );
+            }
+            
+            
+            //update anchor pos...
+            ci::vec3 lastAngle = _angles[_angles.size()-1]; //draw only last position
+            float rotateAngle = lastAngle.x * (M_PI/180.0f); //convert to radians
+            
+            _curAnchorPos.x = _parent->getAnchorPos().x * cos(rotateAngle);
+            _curAnchorPos.y = _parent->getAnchorPos().y * cos(rotateAngle);
+            _curAnchorPos.z = _parent->getAnchorPos().z * cos(rotateAngle);
+            
+            _curAnchorPos += _boneLength;
+        };
+        
+        virtual ci::vec3 getAnchorPos()
+        {
+            return _curAnchorPos;
+        }
+        
+        virtual void draw(float seconds = 0)
+        {
+            if (_angles.size() <= 0 ) return;
+            if(_parent == NULL) return;
+
+            
+            ci::gl::color(1.0f, 0.5f, 0.5f, 0.5f);
+
+            ci::vec3 lastAngle = _angles[_angles.size()-1]; //draw only last position
+            float rotateAngle = lastAngle.x * (M_PI/180.0f); //convert to radians
+            
+            ci::gl::pushModelMatrix();
+            ci::gl::translate(_parent->getAnchorPos());
+            ci::gl::rotate(rotateAngle);
+            ci::gl::drawSolidRect(ci::Rectf(ci::vec2(0,0), ci::vec2(_boneLength.x,-_boneLength.y))); //y is minus bc it is drawn upward from the anchor position
+            ci::gl::popModelMatrix();
+
+        }
+        
+    };
+    
+    
+    //return a hard-coded bone visualizer given a name -- exact match
+    class BoneFactory
+    {
+    protected:
+        std::vector<std::string> names;
+        std::vector<std::string> parents;
+        float thickness;
+        std::vector<float> length;
+        std::vector<ci::vec3> anchorPos;
+    public:
+        BoneFactory()
+        {
+            //hack hack
+            names = {"Root", "Hip", "ChestBottom", "LeftUpperArm", "LeftForeArm", "RightUpperArm", "RightForeArm"};
+            parents = {"", "Root", "Hip", "ChestBottom", "LeftUpperArm", "ChestBottom", "RightUpperArm"};
+            
+            thickness = 5;
+            
+            float h = ci::app::getWindowHeight();
+            float bodyStartY = ci::app::getWindowHeight() * 0.75; //start of hip
+            float bodyStartX = ci::app::getWindowWidth() * 0.5; //all start at same x
+            
+            //okay think about these a bit -- Note: height will be minused from anchor
+            length = {0, h*0.15f, h*65.0f, h*0.15f, h*0.15f, h*0.15f, h*0.15f };
+            
+            anchorPos.push_back(ci::vec3(bodyStartX, bodyStartY, 0.0f)); //root start
+            
+            //get anchor points up to left upper fore arm
+            for(int i=1; i<length.size()-2; i++)
+            {
+                anchorPos.push_back(ci::vec3(bodyStartX, anchorPos[i-1].y-length[i], 0.0f));
+            }
+            
+            //right arm is in same pos as left arm
+            anchorPos.push_back(anchorPos[3]);
+            anchorPos.push_back(anchorPos[4]);
+            
+        };
+        
+        //note: will need to set parent outside of this class, but this class can ID the parent.
+        MocapDataVisualizerNotchFigure2DBone *createBone(std::string name_, int bufsize=48)
+        {
+            
+            MocapDataVisualizerNotchFigure2DBone *bone = NULL;
+            int index = getBoneIndex(name_);
+            
+            ci::vec3 len(0,0,0);
+            if(index != -1)
+            {
+                ci::vec3 len(0,0,0);
+                len.x = thickness;
+                len.z = thickness;
+                len.y = length[index];
+                
+                bone = new MocapDataVisualizerNotchFigure2DBone(name_, anchorPos[index], len, parents[index]);
+            }
+            return bone;
+        };
+
+        std::string getName(int index)
+        {
+            return names[index];
+        }
+        
+        int getBoneCount()
+        {
+            return names.size();
+        }
+        
+        int getBoneIndex(std::string name_)
+        {
+            auto iter = std::find(names.begin(), names.end(), name_);
+            int index = names.begin() - iter;
+            return index;
+        };
+        
+        
+    };
+    
+    //creates all bones that I am currently using
+    class NotchBoneFigureVisualizer : public MocapDataVisualizer
+    {
+    protected:
+        BoneFactory factory;
+        std::vector<MocapDataVisualizerNotchFigure2DBone *> bones;
+        
+        void setParents()
+        {
+            for(int i=0; i<bones.size(); i++)
+            {
+                std::string parentName = bones[i]->getParentName();
+                bones[i]->setParent(getBone(parentName));
+            }
+        };
+    public:
+        NotchBoneFigureVisualizer() : MocapDataVisualizer(NULL, 0, 48, NULL)
+        {
+            //create all the bones
+            for(int i=0; i<factory.getBoneCount(); i++)
+            {
+                bones.push_back(factory.createBone(factory.getName(i)));
+            }
+            setParents();
+        };
+        
+        MocapDataVisualizerNotchFigure2DBone *getBone(std::string name_)
+        {
+            int index = factory.getBoneIndex(name_);
+            if(index > -1)
+                return bones[index];
+            else return NULL;
+        };
+        
+        void setInputSignal(std::string name, OutputSignalAnalysis *s1)
+        {
+            int index = factory.getBoneIndex(name);
+            if(index > -1)
+            {
+                bones[index]->setSignal(s1);
+            }
+            else std::cout << "NotchBoneFigureVisualizer Error: Bone " << name << " is not found\n. ";
+
+        }
+        
+        virtual void update(float seconds = 0)
+        {
+            for(int i=0; i<bones.size(); i++)
+            {
+                bones[i]->update();
+            }
+        };
+        
+        virtual void draw()
+        {
+            for(int i=0; i<bones.size(); i++)
+            {
+                bones[i]->draw();
+            }
+        }
+        
+        
+        
+    };
+
+    
+    class MocapDataVisualizerNotchBoneFigure2D : public MocapDataVisualizer
+    {
+    public:
+        MocapDataVisualizerNotchBoneFigure2D(OutputSignalAnalysis *s1, int _maxDraw=25,int bufsize=48, SignalAnalysis *s2 = NULL)  : MocapDataVisualizer(s1, _maxDraw, bufsize, s2)
+        {
+
+        
+        };
+        
+        virtual void update(float seconds = 0)
+        {
+            
+//            std::vector<MocapDeviceData *> buffer = ugen->getBuffer();
+//            if(buffer.size()<maxDraw) return; //ah well I don't want to handle smaller buffer sizes for this function. feel free to implement that.
+//
+//            points.clear();
+//            alpha.clear();
+//            for(int i=buffer.size()-this->getNewSampleCount(); i<buffer.size(); i++)
+//            {
+//                MocapDeviceData *sample = buffer[i];
+//
+//            }
+        };
+        
+        virtual void draw()
+        {
+            ci::gl::color(1.0f, 0.5f, 0.5f, 0.5f);
+            drawFigure();
+        }
+        
+        
+        void drawFigure()
+        {
+            //TODO: add Z
+            //TODO:figure prob is just all one line @ 0 degrees, so that should be the start
+            
+            //chest and hip
+            float chestLength = ci::app::getWindowHeight() * 0.65;
+            float lineWidth=5.0f;
+            float bodyStartY = ci::app::getWindowHeight() * 0.1;
+            float bodyStartX = ci::app::getWindowWidth() * 0.5;
+            float hipLength = ci::app::getWindowHeight() * 0.15;
+            
+            //arm values
+            float upperArmStartY = bodyStartY + ci::app::getWindowHeight() * 0.25;
+            float upperArmLeftEndX = bodyStartX + ci::app::getWindowWidth() * 0.15;
+            float upperArmRightEndX = bodyStartX - ci::app::getWindowWidth() * 0.15;
+            
+            float foreArmLeftEndX = upperArmLeftEndX + ci::app::getWindowWidth() * 0.15;
+            float foreArmRightEndX = upperArmRightEndX - ci::app::getWindowWidth() * 0.15;
+
+
+            ci::vec2 chestStart(bodyStartX, bodyStartY);
+            ci::vec2 chestEnd(bodyStartX+lineWidth, bodyStartY+chestLength);
+            ci::vec2 hipEnd(bodyStartX, bodyStartY+chestLength+hipLength );
+//            std::cout << "drawing... "  << chestStart << "," << chestEnd << "\n";
+            
+            ci::vec2 upperArmStart(bodyStartX, upperArmStartY);
+            ci::vec2 leftArmEnd(bodyStartX+lineWidth, upperArmStartY+ci::app::getWindowWidth() * 0.15);
+            ci::vec2 rightArmEnd(bodyStartX+lineWidth, upperArmStartY);
+            
+            ci::vec2 leftFormArmEnd(bodyStartX, upperArmStartY);
+            ci::vec2 rightForeArmEnd(bodyStartX, upperArmStartY);
+
+
+            //NOTE -- only one per... need to make mo' complicated :(
+            ci::gl::drawSolidRect(ci::Rectf(chestStart, chestEnd)); //chest
+
+            ci::gl::drawSolidRect(ci::Rectf(chestEnd, hipEnd)); //hip
+            
+            std::vector<MocapDeviceData *> buffer = ugen->getBuffer();
+            if (buffer.size() <= 0 )
+                return;
+            //next step -- if this is the upper arm, draw... will need to refactor so that it knows its parent bone tho... yikes. also this
+            //ugen needs to know its parent. Good to know.
+            MocapDeviceData *lastSample = buffer[buffer.size()-1];
+            float upperArmRotate = lastSample->getData(MocapDeviceData::DataIndices::RELATIVE_TILT) * (M_PI/180.0f);
+
+            ci::gl::pushModelMatrix();
+            
+            ci::gl::translate(upperArmStart);
+            ci::gl::rotate(upperArmRotate);
+            ci::gl::drawSolidRect(ci::Rectf(ci::vec2(0,0), ci::vec2(5,ci::app::getWindowWidth() * 0.15))); //left upper arm
+            ci::gl::popModelMatrix();
+
+            
+//            ci::gl::drawSolidRect(ci::Rectf(upperArmStart, rightArmEnd)); //right upper arm
+//
+//            ci::gl::drawSolidRect(ci::Rectf(leftArmEnd, leftFormArmEnd)); //left upper arm
+//
+//            ci::gl::drawSolidRect(ci::Rectf(rightArmEnd, rightForeArmEnd)); //right upper arm
+            
+            
+//            gl::pushModelMatrix();
+//            gl::translate( ... );
+//            gl::rotate( ... );
+//            gl::draw( ... );
+//            gl::popModelMatrix();
+        }
+    };
+
+
 
 
 };

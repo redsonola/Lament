@@ -13,11 +13,15 @@ namespace CRCPMotionAnalysis {
 //who is being measured? or a collection or who or what's? --
 //this sets up all the ugens and filters and organizes them according to what they represent in real life. For this example, I am only
 //defining a hand. In order to use for yourselves, inherit from this class & add to BodyPart -- or rename it if you are tracking a non-human or non-animal.
+    
+//ok... will need to refactor the way I meant to do so in the beginning
+//create a dancer of class entity .. change this class to body part tho... l
 class Entity : public UGEN
 {
 protected:
-    std::vector<UGEN * > hand; //assuming sensor is being held by the hand
+    std::vector<UGEN * > hand; //assuming sensor is measuring some body part
      MocapDataVisualizer *handVisualizer, *notchBoneVisualizer; //assuming sensor is being held by the hand -- this will have to be a vector for mo' body parts, etc.
+    NotchBoneFigureVisualizer *figure;
     
     FindPeaks *peaks;
 
@@ -32,6 +36,7 @@ public:
 
     Entity(){
         handInit = false;
+        figure = new NotchBoneFigureVisualizer();
     };
     
     bool isInit()
@@ -81,6 +86,8 @@ public:
             bUgens->push_back( notchBoneVisualizer );
         }
         
+        
+        
         //add peak detection... note this is a bit hacky since I am relying on the the fact that the hand visualizer has already scaled this accel.
         //fix if horrified.
         //note that it takes the avgfilter as input -- for some applications taking 1 or more derivatives of the average and then finding the peaks could be useful
@@ -104,6 +111,7 @@ public:
     {
         handVisualizer->draw();
         notchBoneVisualizer->draw();
+        figure->draw();
     }
     
     //if we wanted to gather & send OSC from our ugens or send our own osc.. do it here.
@@ -139,7 +147,7 @@ public:
         for(int i=0; i<hand.size(); i++)
             hand[i]->update(seconds);
         
-
+        figure->update(seconds);
         
     };
 
