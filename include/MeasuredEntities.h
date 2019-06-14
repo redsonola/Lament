@@ -16,50 +16,43 @@ namespace CRCPMotionAnalysis {
     
 //ok... will need to refactor the way I meant to do so in the beginning
 //create a dancer of class entity .. change this class to body part tho... l
-class Entity : public UGEN
+class BodyPartSensor : public UGEN
 {
 protected:
-    std::vector<UGEN * > hand; //assuming sensor is measuring some body part
-     MocapDataVisualizer *handVisualizer, *notchBoneVisualizer; //assuming sensor is being held by the hand -- this will have to be a vector for mo' body parts, etc.
+    std::vector<UGEN * > bodyPart; //assuming sensor is measuring some body part
+     MocapDataVisualizer *bodyPartVisualizer, *notchBoneVisualizer; //assuming sensor is being held by the hand -- this will have to be a vector for mo' body parts, etc.
     NotchBoneFigureVisualizer *figure;
     
     FindPeaks *peaks;
 
-    bool handInit = false; //whether we have set up the hand ugens
-    int handID; //this will correspond to wii mote # or some OSC id'ing the sensor
+    bool bodyPartInit = false; //whether we have set up the body part ugens
+    int bodyPartID; //this will correspond to wii mote # or some OSC id'ing the sensor
     std::string whichBodyPart; //which bone it is
     
     
     int count=0;
 public:
-    enum BodyPart{ HAND=0 }; //add body parts here. Doesn't have to be a body I suppose but you get what I mean.. --> need to change
+    enum BodyPart{ HIP=0, CHESTBOTTOM=1, LEFTUPPERARM=2, LEFTFOREARM=3, RIGHTUPPERARM=4, RIGHTFOREARM=5 }; //add body parts here. Doesn't have to be a body I suppose but you get what I mean.. --> need to change
 
-    Entity(){
-        handInit = false;
+    BodyPartSensor(){
+        bodyPartInit = false;
         figure = new NotchBoneFigureVisualizer();
     };
     
     bool isInit()
     {
-        return handInit;
+        return bodyPartInit;
     };
 
-    void addSensorBodyPart(int idz, SensorData *sensor, BodyPart whichBody )
+    void addSensor(int idz, SensorData *sensor, BodyPart whichBody )
     {
         //which body part is the sensor of?
         whichBodyPart = sensor->getDeviceID();  //yip for now.
         
         std::vector<UGEN * > *bUgens; //the ugen vector to add ugens to
-        switch (whichBody)
-        {
-            case HAND: //well it has to be currently, but ya know, in case this gets expanded...
-                bUgens = &hand;
-                handInit = true;
-                handID = idz;
-                break;
-            default:
-                break;
-        };
+        bUgens = &bodyPart;
+        bodyPartInit = true;
+        bodyPartID = idz;
         
         //add all the basic signal analysis that happens for ea. sensor
         InputSignal *signal_input = new InputSignal(idz); //1. create an input
@@ -75,9 +68,9 @@ public:
         Derivative *derivative = new Derivative(avgfilter, 16, idz, whichBodyPart, true);
         bUgens->push_back( derivative );
   
-//        //add the visualizer
-        handVisualizer = new MocapDataVisualizer( avgfilter );
-        bUgens->push_back( handVisualizer );
+        //add the visualizer
+        bodyPartVisualizer = new MocapDataVisualizer( avgfilter );
+        bUgens->push_back( bodyPartVisualizer );
         
         //add the notch bone angle visualizer
         if(sensor->getDeviceType() == MocapDeviceData::MocapDevice::NOTCH)
@@ -87,12 +80,9 @@ public:
         }
         
         
+        //TODO: calibrate peak detection for notches - 6/14/2019
         
         //add peak detection... note this is a bit hacky since I am relying on the the fact that the hand visualizer has already scaled this accel.
-        //fix if horrified.
-        //note that it takes the avgfilter as input -- for some applications taking 1 or more derivatives of the average and then finding the peaks could be useful
-        //also note wiimote is giving you rotational position whereas the phone is giving you actual acceleration -- which affects peaks, etc.
-        //if you want to send OSC -- create those messages in the findpeaks ugen getOSC().
         double THRESH_DEFAULT = 0.07; //peak must exceed this value to report a peak  -- currently calibrated for scope1 of syntienOSC from iphone
         if(sensor->getDeviceType() == MocapDeviceData::MocapDevice::WIIMOTE)
         {
@@ -109,7 +99,7 @@ public:
     //do all the drawing here.
     virtual void draw()
     {
-        handVisualizer->draw();
+        bodyPartVisualizer->draw();
         notchBoneVisualizer->draw();
         figure->draw();
     }
@@ -128,9 +118,9 @@ public:
 //        }
         
         //ok I'll do it
-        for (int i=0; i<hand.size(); i++)
+        for (int i=0; i<bodyPart.size(); i++)
         {
-            std::vector<ci::osc::Message> nmsgs = hand[i]->getOSC();
+            std::vector<ci::osc::Message> nmsgs = bodyPart[i]->getOSC();
 
             for(int j=0; j<nmsgs.size(); j++)
             {
@@ -144,8 +134,8 @@ public:
     //update all the ugens we own. all of them that need updating..
     virtual void update(float seconds = 0)
     {
-        for(int i=0; i<hand.size(); i++)
-            hand[i]->update(seconds);
+        for(int i=0; i<bodyPart.size(); i++)
+            bodyPart[i]->update(seconds);
         
         figure->update(seconds);
         
