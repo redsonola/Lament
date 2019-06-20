@@ -115,6 +115,7 @@ protected:
     CRCPMotionAnalysis::SensorData *getSensor( std::string _id, int which, CRCPMotionAnalysis::MocapDeviceData::MocapDevice device ); // find sensor or wiimote in list via id
     std::vector<CRCPMotionAnalysis::SensorData *> mSensors; //all the sensors which have sent us OSC -- well only wiimotes so far
     std::vector<CRCPMotionAnalysis::BodyPartSensor *> mBodyParts;  //who are we measuring? change name when specifics are known.
+    std::vector<CRCPMotionAnalysis::Entity *> mPeople;
     
     float seconds; //where we are
     
@@ -197,8 +198,16 @@ CRCPMotionAnalysis::SensorData *FeverRhythmCycleMain::getSensor( std::string _id
         //add to 'body part' the data structure which can combine sensors. It currently only has one body part so it is simple.
         int bodyPartID  = mSensors.size()-1;
         CRCPMotionAnalysis::BodyPartSensor *bodyPart = new CRCPMotionAnalysis::BodyPartSensor();
-        bodyPart->addSensor(bodyPartID, sensor, CRCPMotionAnalysis::BodyPartSensor::BodyPart::HIP );  //note that this should change if using bones, etc.
+        bodyPart->addSensor(bodyPartID, sensor);  //note that this should change if using bones, etc.
         mBodyParts.push_back(bodyPart);
+        
+        //TODO: ok, handle multiple entities later
+        if(mPeople.size() <= 0)
+        {
+            mPeople.push_back(new CRCPMotionAnalysis::Entity());
+        }
+        mPeople[0]->addBodyPart(bodyPart);
+        
         return sensor;
     }
 }
@@ -581,15 +590,15 @@ void FeverRhythmCycleMain::update()
         mSensors[i]->update(seconds);
     }
     //update all entities
-    for(int i=0; i<mBodyParts.size(); i++)
+    for(int i=0; i<mPeople.size(); i++)
     {
-        mBodyParts[i]->update(seconds);
+        mPeople[i]->update(seconds);
     }
     
     //send OSC from the entities -- after all are updated..
-    for(int i=0; i<mBodyParts.size(); i++)
+    for(int i=0; i<mPeople.size(); i++)
     {
-        std::vector<osc::Message> msgs = mBodyParts[i]->getOSC();
+        std::vector<osc::Message> msgs = mPeople[i]->getOSC();
         for(int i=0; i<msgs.size(); i++)
         {
             mSender.send(msgs[i]);
@@ -610,9 +619,9 @@ void FeverRhythmCycleMain::draw()
     
     gl::clear( Color( 0, 0, 0 ) );
     
-    for(int i=0; i<mBodyParts.size(); i++)
+    for(int i=0; i<mPeople.size(); i++)
     {
-        mBodyParts[i]->draw();
+        mPeople[i]->draw();
     }
     
 }

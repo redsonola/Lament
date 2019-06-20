@@ -21,9 +21,9 @@ class BodyPartSensor : public UGEN
 protected:
     std::vector<UGEN * > bodyPart; //assuming sensor is measuring some body part
      MocapDataVisualizer *bodyPartVisualizer, *notchBoneVisualizer; //assuming sensor is being held by the hand -- this will have to be a vector for mo' body parts, etc.
-    NotchBoneFigureVisualizer *figure;
     
     FindPeaks *peaks;
+    OutputSignalAnalysis *avgSignal;
 
     bool bodyPartInit = false; //whether we have set up the body part ugens
     int bodyPartID; //this will correspond to wii mote # or some OSC id'ing the sensor
@@ -36,7 +36,6 @@ public:
 
     BodyPartSensor(){
         bodyPartInit = false;
-        figure = new NotchBoneFigureVisualizer();
     };
     
     bool isInit()
@@ -44,7 +43,7 @@ public:
         return bodyPartInit;
     };
 
-    void addSensor(int idz, SensorData *sensor, BodyPart whichBody )
+    void addSensor(int idz, SensorData *sensor)
     {
         //which body part is the sensor of?
         whichBodyPart = sensor->getDeviceID();  //yip for now.
@@ -64,6 +63,7 @@ public:
         
         AveragingFilter *avgfilter = new AveragingFilter(signal_input, 3, 16, idz, whichBodyPart, true);
         bUgens->push_back( avgfilter );
+        avgSignal = avgfilter;
         
         Derivative *derivative = new Derivative(avgfilter, 16, idz, whichBodyPart, true);
         bUgens->push_back( derivative );
@@ -78,7 +78,6 @@ public:
             notchBoneVisualizer = new MocapDataVisualizerNotchBonePosition( avgfilter );
             bUgens->push_back( notchBoneVisualizer );
         }
-        
         
         //TODO: calibrate peak detection for notches - 6/14/2019
         
@@ -96,12 +95,22 @@ public:
         peaks->setThreshes(THRESH_DEFAULT, THRESH_DEFAULT, THRESH_DEFAULT);
     }
     
+    inline OutputSignalAnalysis *getAvgSignal()
+    {
+        return avgSignal;
+    };
+    
+    inline std::string getWhichBodyPart()
+    {
+        return whichBodyPart;
+    };
+    
+    
     //do all the drawing here.
     virtual void draw()
     {
         bodyPartVisualizer->draw();
         notchBoneVisualizer->draw();
-        figure->draw();
     }
     
     //if we wanted to gather & send OSC from our ugens or send our own osc.. do it here.
@@ -134,14 +143,79 @@ public:
     //update all the ugens we own. all of them that need updating..
     virtual void update(float seconds = 0)
     {
-        for(int i=0; i<bodyPart.size(); i++)
+        for(int i=0; i<bodyPart.size(); i++){
             bodyPart[i]->update(seconds);
-        
-        figure->update(seconds);
+        }
         
     };
 
 };
+    
+    class Entity : public UGEN
+    {
+    protected:
+        std::vector<BodyPartSensor * > bodyParts; //assuming sensor is measuring some body part
+        std::vector<NotchBoneFigureVisualizer *> figure;
+
+    public:
+        Entity() : UGEN()
+        {
+            double w = ci::app::getWindowWidth() * 0.25;
+            int i=0; //(>_<)
+
+            for (Axis axis : AxisList)
+            {
+                figure.push_back(new NotchBoneFigureVisualizer(axis, w + w*i));
+                i++; //(>_<)
+            }
+        }
+        void addBodyPart(BodyPartSensor *part)
+        {
+            for(NotchBoneFigureVisualizer *f: figure)
+                f->setInputSignal(part->getWhichBodyPart(), part->getAvgSignal());
+            bodyParts.push_back(part);
+        }
+        
+        //update all the ugens we own. all of them that need updating..
+        virtual void update(float seconds = 0)
+        {
+            for(int i=0; i<bodyParts.size(); i++)
+                bodyParts[i]->update(seconds);
+            
+            for(NotchBoneFigureVisualizer *f: figure)
+                f->update(seconds);
+            
+        };
+        
+        //collect all the OSC messages and send them to calling class
+        virtual std::vector<ci::osc::Message> getOSC()
+        {
+            std::vector<ci::osc::Message> msgs;
+            
+            for (int i=0; i<bodyParts.size(); i++)
+            {
+                std::vector<ci::osc::Message> nmsgs = bodyParts[i]->getOSC();
+                
+                for(int j=0; j<nmsgs.size(); j++)
+                {
+                    msgs.push_back(nmsgs[j]);
+                }
+            }
+            return msgs;
+        };
+        
+        //do all the drawing here.
+        virtual void draw()
+        {
+            for (int i=0; i<bodyParts.size(); i++)
+            {
+                bodyParts[i]->draw();
+            }
+            for(NotchBoneFigureVisualizer *f: figure)
+                f->draw();
+        }
+    
+    };
     
 };
 

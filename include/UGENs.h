@@ -531,7 +531,7 @@ public:
                     }
                     
                     
-                    std::cout << std::endl;
+//                    std::cout << std::endl;
                     
                     msgs.push_back(msg);
                     
@@ -639,6 +639,9 @@ public:
     
 };
     
+    //needed for notch figure
+    enum Axis {X=0, Y=1, Z=2};
+    std::initializer_list<Axis> AxisList{Axis::X, Axis::Y, Axis::Z};
     
     //visualizes one bone
     class MocapDataVisualizerNotchFigure2DBone : public MocapDataVisualizer
@@ -651,8 +654,11 @@ public:
         ci::vec3 _boneLength;
         std::string _parentName;
         
+    protected:
+        Axis _axis;
     public:
-        MocapDataVisualizerNotchFigure2DBone(std::string name, ci::vec3 startAnchorPos, ci::vec3 boneLength, std::string parentName, OutputSignalAnalysis *s1=NULL, MocapDataVisualizerNotchFigure2DBone *parent=NULL, int bufsize=48, SignalAnalysis *s2 = NULL)  : MocapDataVisualizer(s1, 0, bufsize, s2)
+
+        MocapDataVisualizerNotchFigure2DBone(std::string name, ci::vec3 startAnchorPos, ci::vec3 boneLength, std::string parentName, Axis axis, OutputSignalAnalysis *s1=NULL, MocapDataVisualizerNotchFigure2DBone *parent=NULL, int bufsize=48, SignalAnalysis *s2 = NULL)  : MocapDataVisualizer(s1, 0, bufsize, s2)
         {
             _name = name;
             _parent = parent;
@@ -660,6 +666,8 @@ public:
             _curAnchorPos = startAnchorPos;
             _boneLength = boneLength; //the x value is the thickness, the y value is the length, z also contributes to thickness in 3d, ignored in 2d test
             _parentName = parentName;
+            
+            _axis = axis;
         };
         
         void setParent(MocapDataVisualizerNotchFigure2DBone *parent)
@@ -672,15 +680,24 @@ public:
             return _parentName;
         }
         
+        
         void setSignal(OutputSignalAnalysis *s1)
         {
             ugen=s1;
         };
         
+        std::string getName()
+        {
+            return _name;
+        }
+        
         virtual void update(float seconds = 0)
         {
+            if(ugen==NULL) return;
+//            std::cout << "Bone " << _name << " is updating." << "Parent is: "<< getParentName() <<" and parent name: " << _parent->getName() << "and anchor pos: " << getAnchorPos() << "\n ";
+
             std::vector<MocapDeviceData *> buffer = ugen->getBuffer();
-            if(buffer.size()<maxDraw) return; //ah well I don't want to handle smaller buffer sizes for this function. feel free to implement that.
+            if(buffer.size()<=0) return;
             
             points.clear();
             alpha.clear();
@@ -695,14 +712,35 @@ public:
             
             //update anchor pos...
             ci::vec3 lastAngle = _angles[_angles.size()-1]; //draw only last position
-            float rotateAngle = lastAngle.x * (M_PI/180.0f); //convert to radians
+            double rotateAngle = convertToRadiansAndRelativeNotchAngle(lastAngle, getName()) ; //convert to radians
             
-            _curAnchorPos.x = _parent->getAnchorPos().x * cos(rotateAngle);
-            _curAnchorPos.y = _parent->getAnchorPos().y * cos(rotateAngle);
-            _curAnchorPos.z = _parent->getAnchorPos().z * cos(rotateAngle);
+            double radius = _boneLength.y;
+            //hack hack hack
+            if(!_name.compare("ChestBottom"))radius = _boneLength.y*0.65;
             
-            _curAnchorPos += _boneLength;
+            _curAnchorPos.x = radius*cos(-rotateAngle  + M_PI_2) + _parent->getAnchorPos().x;
+            _curAnchorPos.y = radius*-sin(-rotateAngle + M_PI_2) + _parent->getAnchorPos().y;
+
         };
+        
+        virtual double convertToRadiansAndRelativeNotchAngle(ci::vec3 angle, std::string name)
+        {
+            float a;
+            if(_axis==Axis::X)
+            {
+                a = angle.x;
+            }
+            else if(_axis==Axis::Y)
+            {
+                a = angle.y;
+            }
+            else a= angle.z;
+
+            a *= (M_PI/180.0f);
+            if(!name.compare("LeftUpperArm") || !name.compare("RightUpperArm") || !name.compare("LeftForeArm") || !name.compare("RightForeArm"))
+                a+= M_PI;
+            return a;
+        }
         
         virtual ci::vec3 getAnchorPos()
         {
@@ -711,14 +749,27 @@ public:
         
         virtual void draw(float seconds = 0)
         {
+            //draw the anchor point tho.
+            ci::gl::color(1.0f, 1.0f, 1.0f, 1.0f);
+            ci::gl::drawSolidCircle(ci::vec2(getAnchorPos().x,getAnchorPos().y), 3);
+            if(!_parent) return;
+
+            ci::gl::color(1.0f, 0.0f, 1.0f, 0.4f);
+            ci::gl::drawSolidCircle(ci::vec2(_parent->getAnchorPos().x,_parent->getAnchorPos().y), 3);
+
+            ci::gl::color(1.0f, 1.0f, 1.0f, 1.0f);
+
+            
             if (_angles.size() <= 0 ) return;
-            if(_parent == NULL) return;
+            if(!_parent) return;
 
             
             ci::gl::color(1.0f, 0.5f, 0.5f, 0.5f);
 
             ci::vec3 lastAngle = _angles[_angles.size()-1]; //draw only last position
-            float rotateAngle = lastAngle.x * (M_PI/180.0f); //convert to radians
+            float rotateAngle = convertToRadiansAndRelativeNotchAngle(lastAngle, getName()); //convert to radians
+            
+//float rotateAngle = 0; //see the figure w/no rotation
             
             ci::gl::pushModelMatrix();
             ci::gl::translate(_parent->getAnchorPos());
@@ -737,11 +788,11 @@ public:
     protected:
         std::vector<std::string> names;
         std::vector<std::string> parents;
-        float thickness;
-        std::vector<float> length;
+        double thickness;
+        std::vector<double> length;
         std::vector<ci::vec3> anchorPos;
     public:
-        BoneFactory()
+        BoneFactory(double bodyStartX=ci::app::getWindowWidth() * 0.5)
         {
             //hack hack
             names = {"Root", "Hip", "ChestBottom", "LeftUpperArm", "LeftForeArm", "RightUpperArm", "RightForeArm"};
@@ -749,43 +800,49 @@ public:
             
             thickness = 5;
             
-            float h = ci::app::getWindowHeight();
-            float bodyStartY = ci::app::getWindowHeight() * 0.75; //start of hip
-            float bodyStartX = ci::app::getWindowWidth() * 0.5; //all start at same x
+            double h = ci::app::getWindowHeight();
+            double bodyStartY = ci::app::getWindowHeight() * 0.85; //start of hip
             
             //okay think about these a bit -- Note: height will be minused from anchor
-            length = {0, h*0.15f, h*65.0f, h*0.15f, h*0.15f, h*0.15f, h*0.15f };
+            length = {0, h*0.15, h*0.35, h*0.1, h*0.1, h*0.1, h*0.1 };
             
-            anchorPos.push_back(ci::vec3(bodyStartX, bodyStartY, 0.0f)); //root start
+            //ok, hand coded. let's see
+            anchorPos.push_back(ci::vec3(bodyStartX, bodyStartY, 0.0)); //root
+            anchorPos.push_back(ci::vec3(bodyStartX, bodyStartY-length[1], 0.0)); //hip
+            anchorPos.push_back(ci::vec3(bodyStartX, anchorPos[1].y-(length[2]*0.75), 0.0)); //chest
+            anchorPos.push_back(ci::vec3(bodyStartX, anchorPos[2].y-length[3], 0.0)); //left upper arm
+            anchorPos.push_back(ci::vec3(bodyStartX, anchorPos[3].y-length[4], 0.0)); //left fore arm
+            anchorPos.push_back(ci::vec3(bodyStartX, anchorPos[2].y-length[3], 0.0)); //right upper arm
+            anchorPos.push_back(ci::vec3(bodyStartX, anchorPos[3].y-length[4], 0.0)); //right fore arm
             
-            //get anchor points up to left upper fore arm
-            for(int i=1; i<length.size()-2; i++)
-            {
-                anchorPos.push_back(ci::vec3(bodyStartX, anchorPos[i-1].y-length[i], 0.0f));
-            }
-            
-            //right arm is in same pos as left arm
-            anchorPos.push_back(anchorPos[3]);
-            anchorPos.push_back(anchorPos[4]);
+//            //get anchor points up to left upper fore arm
+//            for(int i=1; i<length.size()-2; i++)
+//            {
+//                anchorPos.push_back(ci::vec3(bodyStartX, anchorPos[i-1].y-length[i], 0.0f));
+//            }
+//
+//            //right arm is in same pos as left arm
+//            anchorPos.push_back(anchorPos[3]);
+//            anchorPos.push_back(anchorPos[4]);
             
         };
         
         //note: will need to set parent outside of this class, but this class can ID the parent.
-        MocapDataVisualizerNotchFigure2DBone *createBone(std::string name_, int bufsize=48)
+        MocapDataVisualizerNotchFigure2DBone *createBone(std::string name_, Axis axis, int bufsize=48)
         {
             
             MocapDataVisualizerNotchFigure2DBone *bone = NULL;
             int index = getBoneIndex(name_);
             
             ci::vec3 len(0,0,0);
-            if(index != -1)
+            if(index >= 0)
             {
                 ci::vec3 len(0,0,0);
                 len.x = thickness;
                 len.z = thickness;
                 len.y = length[index];
                 
-                bone = new MocapDataVisualizerNotchFigure2DBone(name_, anchorPos[index], len, parents[index]);
+                bone = new MocapDataVisualizerNotchFigure2DBone(name_, anchorPos[index], len, parents[index], axis);
             }
             return bone;
         };
@@ -803,7 +860,7 @@ public:
         int getBoneIndex(std::string name_)
         {
             auto iter = std::find(names.begin(), names.end(), name_);
-            int index = names.begin() - iter;
+            int index = iter - names.begin();
             return index;
         };
         
@@ -822,16 +879,19 @@ public:
             for(int i=0; i<bones.size(); i++)
             {
                 std::string parentName = bones[i]->getParentName();
-                bones[i]->setParent(getBone(parentName));
+                MocapDataVisualizerNotchFigure2DBone *p=getBone(parentName);
+//                if(p==NULL)
+//                    std::cout << bones[i] << " has a null parent\n";
+                bones[i]->setParent(p);
             }
         };
     public:
-        NotchBoneFigureVisualizer() : MocapDataVisualizer(NULL, 0, 48, NULL)
+        NotchBoneFigureVisualizer(Axis axis, double bodyStartX=ci::app::getWindowWidth() * 0.5) : MocapDataVisualizer(NULL, 0, 48, NULL), factory(bodyStartX)
         {
             //create all the bones
             for(int i=0; i<factory.getBoneCount(); i++)
             {
-                bones.push_back(factory.createBone(factory.getName(i)));
+                bones.push_back(factory.createBone(factory.getName(i), axis));
             }
             setParents();
         };
@@ -839,7 +899,9 @@ public:
         MocapDataVisualizerNotchFigure2DBone *getBone(std::string name_)
         {
             int index = factory.getBoneIndex(name_);
-            if(index > -1)
+//            std::cout << name_ << " has the index: " << index << "\n";
+
+            if(index > -1 && index < bones.size())
                 return bones[index];
             else return NULL;
         };
@@ -850,6 +912,7 @@ public:
             if(index > -1)
             {
                 bones[index]->setSignal(s1);
+//                std::cout << "Input signal set for Bone " << name << " is set.\n ";
             }
             else std::cout << "NotchBoneFigureVisualizer Error: Bone " << name << " is not found\n. ";
 
@@ -876,106 +939,106 @@ public:
     };
 
     
-    class MocapDataVisualizerNotchBoneFigure2D : public MocapDataVisualizer
-    {
-    public:
-        MocapDataVisualizerNotchBoneFigure2D(OutputSignalAnalysis *s1, int _maxDraw=25,int bufsize=48, SignalAnalysis *s2 = NULL)  : MocapDataVisualizer(s1, _maxDraw, bufsize, s2)
-        {
-
-        
-        };
-        
-        virtual void update(float seconds = 0)
-        {
-            
+//    class MocapDataVisualizerNotchBoneFigure2D : public MocapDataVisualizer
+//    {
+//    public:
+//        MocapDataVisualizerNotchBoneFigure2D(OutputSignalAnalysis *s1, int _maxDraw=25,int bufsize=48, SignalAnalysis *s2 = NULL)  : MocapDataVisualizer(s1, _maxDraw, bufsize, s2)
+//        {
+//
+//
+//        };
+//
+//        virtual void update(float seconds = 0)
+//        {
+//
+////            std::vector<MocapDeviceData *> buffer = ugen->getBuffer();
+////            if(buffer.size()<maxDraw) return; //ah well I don't want to handle smaller buffer sizes for this function. feel free to implement that.
+////
+////            points.clear();
+////            alpha.clear();
+////            for(int i=buffer.size()-this->getNewSampleCount(); i<buffer.size(); i++)
+////            {
+////                MocapDeviceData *sample = buffer[i];
+////
+////            }
+//        };
+//
+//        virtual void draw()
+//        {
+//            ci::gl::color(1.0f, 0.5f, 0.5f, 0.5f);
+//            drawFigure();
+//        }
+//
+//
+//        void drawFigure()
+//        {
+//            //TODO: add Z
+//            //TODO:figure prob is just all one line @ 0 degrees, so that should be the start
+//
+//            //chest and hip
+//            float chestLength = ci::app::getWindowHeight() * 0.5;
+//            float lineWidth=5.0f;
+//            float bodyStartY = ci::app::getWindowHeight() * 0.1;
+//            float bodyStartX = ci::app::getWindowWidth() * 0.5;
+//            float hipLength = ci::app::getWindowHeight() * 0.15;
+//
+//            //arm values
+//            float upperArmStartY = bodyStartY + ci::app::getWindowHeight() * 0.25;
+//            float upperArmLeftEndX = bodyStartX + ci::app::getWindowWidth() * 0.15;
+//            float upperArmRightEndX = bodyStartX - ci::app::getWindowWidth() * 0.15;
+//
+//            float foreArmLeftEndX = upperArmLeftEndX + ci::app::getWindowWidth() * 0.15;
+//            float foreArmRightEndX = upperArmRightEndX - ci::app::getWindowWidth() * 0.15;
+//
+//
+//            ci::vec2 chestStart(bodyStartX, bodyStartY);
+//            ci::vec2 chestEnd(bodyStartX+lineWidth, bodyStartY+chestLength);
+//            ci::vec2 hipEnd(bodyStartX, bodyStartY+chestLength+hipLength );
+////            std::cout << "drawing... "  << chestStart << "," << chestEnd << "\n";
+//
+//            ci::vec2 upperArmStart(bodyStartX, upperArmStartY);
+//            ci::vec2 leftArmEnd(bodyStartX+lineWidth, upperArmStartY+ci::app::getWindowWidth() * 0.15);
+//            ci::vec2 rightArmEnd(bodyStartX+lineWidth, upperArmStartY);
+//
+//            ci::vec2 leftFormArmEnd(bodyStartX, upperArmStartY);
+//            ci::vec2 rightForeArmEnd(bodyStartX, upperArmStartY);
+//
+//
+//            //NOTE -- only one per... need to make mo' complicated :(
+//            ci::gl::drawSolidRect(ci::Rectf(chestStart, chestEnd)); //chest
+//
+//            ci::gl::drawSolidRect(ci::Rectf(chestEnd, hipEnd)); //hip
+//
 //            std::vector<MocapDeviceData *> buffer = ugen->getBuffer();
-//            if(buffer.size()<maxDraw) return; //ah well I don't want to handle smaller buffer sizes for this function. feel free to implement that.
+//            if (buffer.size() <= 0 )
+//                return;
+//            //next step -- if this is the upper arm, draw... will need to refactor so that it knows its parent bone tho... yikes. also this
+//            //ugen needs to know its parent. Good to know.
+//            MocapDeviceData *lastSample = buffer[buffer.size()-1];
+//            float upperArmRotate = lastSample->getData(MocapDeviceData::DataIndices::RELATIVE_TILT) * (M_PI/180.0f);
 //
-//            points.clear();
-//            alpha.clear();
-//            for(int i=buffer.size()-this->getNewSampleCount(); i<buffer.size(); i++)
-//            {
-//                MocapDeviceData *sample = buffer[i];
+//            ci::gl::pushModelMatrix();
 //
-//            }
-        };
-        
-        virtual void draw()
-        {
-            ci::gl::color(1.0f, 0.5f, 0.5f, 0.5f);
-            drawFigure();
-        }
-        
-        
-        void drawFigure()
-        {
-            //TODO: add Z
-            //TODO:figure prob is just all one line @ 0 degrees, so that should be the start
-            
-            //chest and hip
-            float chestLength = ci::app::getWindowHeight() * 0.65;
-            float lineWidth=5.0f;
-            float bodyStartY = ci::app::getWindowHeight() * 0.1;
-            float bodyStartX = ci::app::getWindowWidth() * 0.5;
-            float hipLength = ci::app::getWindowHeight() * 0.15;
-            
-            //arm values
-            float upperArmStartY = bodyStartY + ci::app::getWindowHeight() * 0.25;
-            float upperArmLeftEndX = bodyStartX + ci::app::getWindowWidth() * 0.15;
-            float upperArmRightEndX = bodyStartX - ci::app::getWindowWidth() * 0.15;
-            
-            float foreArmLeftEndX = upperArmLeftEndX + ci::app::getWindowWidth() * 0.15;
-            float foreArmRightEndX = upperArmRightEndX - ci::app::getWindowWidth() * 0.15;
-
-
-            ci::vec2 chestStart(bodyStartX, bodyStartY);
-            ci::vec2 chestEnd(bodyStartX+lineWidth, bodyStartY+chestLength);
-            ci::vec2 hipEnd(bodyStartX, bodyStartY+chestLength+hipLength );
-//            std::cout << "drawing... "  << chestStart << "," << chestEnd << "\n";
-            
-            ci::vec2 upperArmStart(bodyStartX, upperArmStartY);
-            ci::vec2 leftArmEnd(bodyStartX+lineWidth, upperArmStartY+ci::app::getWindowWidth() * 0.15);
-            ci::vec2 rightArmEnd(bodyStartX+lineWidth, upperArmStartY);
-            
-            ci::vec2 leftFormArmEnd(bodyStartX, upperArmStartY);
-            ci::vec2 rightForeArmEnd(bodyStartX, upperArmStartY);
-
-
-            //NOTE -- only one per... need to make mo' complicated :(
-            ci::gl::drawSolidRect(ci::Rectf(chestStart, chestEnd)); //chest
-
-            ci::gl::drawSolidRect(ci::Rectf(chestEnd, hipEnd)); //hip
-            
-            std::vector<MocapDeviceData *> buffer = ugen->getBuffer();
-            if (buffer.size() <= 0 )
-                return;
-            //next step -- if this is the upper arm, draw... will need to refactor so that it knows its parent bone tho... yikes. also this
-            //ugen needs to know its parent. Good to know.
-            MocapDeviceData *lastSample = buffer[buffer.size()-1];
-            float upperArmRotate = lastSample->getData(MocapDeviceData::DataIndices::RELATIVE_TILT) * (M_PI/180.0f);
-
-            ci::gl::pushModelMatrix();
-            
-            ci::gl::translate(upperArmStart);
-            ci::gl::rotate(upperArmRotate);
-            ci::gl::drawSolidRect(ci::Rectf(ci::vec2(0,0), ci::vec2(5,ci::app::getWindowWidth() * 0.15))); //left upper arm
-            ci::gl::popModelMatrix();
-
-            
-//            ci::gl::drawSolidRect(ci::Rectf(upperArmStart, rightArmEnd)); //right upper arm
+//            ci::gl::translate(upperArmStart);
+//            ci::gl::rotate(upperArmRotate);
+//            ci::gl::drawSolidRect(ci::Rectf(ci::vec2(0,0), ci::vec2(5,ci::app::getWindowWidth() * 0.15))); //left upper arm
+//            ci::gl::popModelMatrix();
 //
-//            ci::gl::drawSolidRect(ci::Rectf(leftArmEnd, leftFormArmEnd)); //left upper arm
 //
-//            ci::gl::drawSolidRect(ci::Rectf(rightArmEnd, rightForeArmEnd)); //right upper arm
-            
-            
-//            gl::pushModelMatrix();
-//            gl::translate( ... );
-//            gl::rotate( ... );
-//            gl::draw( ... );
-//            gl::popModelMatrix();
-        }
-    };
+////            ci::gl::drawSolidRect(ci::Rectf(upperArmStart, rightArmEnd)); //right upper arm
+////
+////            ci::gl::drawSolidRect(ci::Rectf(leftArmEnd, leftFormArmEnd)); //left upper arm
+////
+////            ci::gl::drawSolidRect(ci::Rectf(rightArmEnd, rightForeArmEnd)); //right upper arm
+//
+//
+////            gl::pushModelMatrix();
+////            gl::translate( ... );
+////            gl::rotate( ... );
+////            gl::draw( ... );
+////            gl::popModelMatrix();
+//        }
+//    };
 
 
 
