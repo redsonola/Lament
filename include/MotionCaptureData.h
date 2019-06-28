@@ -171,6 +171,11 @@ class MocapDeviceData
             
         };
     
+    inline ci::vec3 getBoneAngles()
+    {
+        return ci::vec3(getData(BONEANGLE_TILT), getData(BONEANGLE_ROTATE), getData(BONEANGLE_LATERAL));
+    };
+    
         inline ci::vec3 getRelativeBoneAngles()
         {
             return ci::vec3(getData(RELATIVE_TILT), getData(RELATIVE_ROTATE), getData(RELATIVE_LATERAL));

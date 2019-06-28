@@ -109,8 +109,8 @@ public:
     //do all the drawing here.
     virtual void draw()
     {
-        bodyPartVisualizer->draw();
-        notchBoneVisualizer->draw();
+//        bodyPartVisualizer->draw();
+//        notchBoneVisualizer->draw();
     }
     
     //if we wanted to gather & send OSC from our ugens or send our own osc.. do it here.
