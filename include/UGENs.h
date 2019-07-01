@@ -719,7 +719,7 @@ public:
             
             //update anchor pos...
 //            lastAngle = _angles[_angles.size()-1]; //draw only last position
-            doAnchorPosCalcs();
+//            doAnchorPosCalcs();
 //            double rotateAngle = convertToRadiansAndRelativeNotchAngle(lastAngle, getName()) ; //convert to radians
 //
 //            double radius = _boneLength.y;
@@ -838,19 +838,17 @@ public:
 //
 //                y’ = x sin β + y cos β
                 
-                whereAmI.x -= _parent->getStartAnchorPos().x;
-                whereAmI.y -= _parent->getStartAnchorPos().y;
-                whereAmI.x = whereAmI.x*cos(rotateAngle) - whereAmI.y*sin(rotateAngle);
-                whereAmI.y = whereAmI.x*sin(rotateAngle) + whereAmI.y*cos(rotateAngle);
-                whereAmI.x += _parent->getStartAnchorPos().x;
-                whereAmI.y += _parent->getStartAnchorPos().y;
-                
-//                whereAmI.x += _boneLength.x*cos(rotateAngle);
-//                whereAmI.y += _boneLength.y*-sin(rotateAngle);
+//                whereAmI.x -= _parent->getStartAnchorPos().x;
+//                whereAmI.y -= _parent->getStartAnchorPos().y;
+
+                whereAmI.x += _boneLength.x*cos(-(rotateAngle + M_PI_2));
+                whereAmI.y += _boneLength.y*-sin(-(rotateAngle + M_PI_2));
                 
 //                ci::gl::rotate(convertToRadiansAndRelativeNotchAngle(lastAngle, getName()));
                 
                 //ci::gl::drawSolidRect(ci::Rectf(ci::vec2(0,0), ci::vec2(_boneLength.x,-_boneLength.y))); //y is minus bc it is drawn upward from the anchor position
+                
+                //can you get the transformation matrix from OpenGL????
 
             }
             //            std::cout <<_name << ": Where am I? " << whereAmI.x << "," << whereAmI.y << std::endl;
@@ -859,8 +857,36 @@ public:
         
         void doAnchorPosCalcs()
         {
-            ci::vec2 anchorPos = parentTranslationsAndRotationsCalcs();
-            _curAnchorPos = ci::vec3(anchorPos.x, anchorPos.y, 0);
+            ci::vec2 curAnchor = ci::vec2(_curAnchorPos.x, _curAnchorPos.y);
+            
+//            mat4 getModelMatrix ()
+//            mat4 getViewMatrix ()
+//            mat4 getProjectionMatrix ()
+//            mat4 getModelView()
+
+//            Matrix4f::transformPoint ->  vec4 pt = mat4() * vec4(1,0,0,1)
+            
+            ci::mat4 modelView = ci::gl::getModelView();
+            ci::mat4 proj = ci::gl::getProjectionMatrix();
+
+
+            ci::vec4 row1(1, 0, 0, getStartAnchorPos().x );
+            ci::vec4 row2(0, 1, 0, getStartAnchorPos().y );
+            ci::vec4 row3(0, 0, 1, 0 );
+            ci::vec4 row4(0, 0, 0, 1 );
+            ci::mat4 anchor(row1, row2, row3, row4);
+            ci::mat4 newAnchor = anchor * modelView;
+            
+            ci::vec4 mvm = newAnchor * ci::vec4(1,0,0,1);
+            std::cout << mvm << std::endl;
+//            std::cout << proj << std::endl;
+
+            _curAnchorPos = ci::vec3(newAnchor[0][3], newAnchor[1][3], 0);
+//
+
+            
+//            ci::vec3 pointInObjectSpace = ci::vec2(curAnchor.x, curAnchor.y, 0);
+//            ci::vec2 pov = modelView.  transformPoint( pointInObjectSpace );
         }
         
         ci::vec2 parentTranslationsAndRotations()
@@ -885,25 +911,25 @@ public:
             return whereAmI;
         }
         
-        virtual void draw(float seconds = 0)
+        void drawAnchorPoints()
         {
             //draw the anchor point tho.
             ci::gl::color(1.0f, 1.0f, 1.0f, 1.0f);
             ci::gl::drawSolidCircle(ci::vec2(getAnchorPos().x,getAnchorPos().y), 3);
             if(!_parent) return;
-
+            
             ci::gl::color(1.0f, 0.0f, 1.0f, 0.4f);
             ci::gl::drawSolidCircle(ci::vec2(_parent->getAnchorPos().x,_parent->getAnchorPos().y), 3);
-
-            ci::gl::color(1.0f, 1.0f, 1.0f, 1.0f);
-
             
+            ci::gl::color(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+        
+        virtual void draw(float seconds = 0)
+        {
+
             if(!_parent) return;
 
-            
             ci::gl::color(1.0f, 0.5f, 0.5f, 0.5f);
-
-//            ci::vec3 lastAngle = _angles[_angles.size()-1]; //draw only last position
             float rotateAngle = convertToRadiansAndRelativeNotchAngle(lastAngle, getName()); //convert to radians
             
 //float rotateAngle = 0; //see the figure w/no rotation
@@ -912,6 +938,7 @@ public:
 //            ci::gl::translate(_parent->getAnchorPos());
 //            std::cout << "------\n";
             ci::vec2 whereAmI = parentTranslationsAndRotations();
+            doAnchorPosCalcs();
 //            ci::gl::rotate(rotateAngle);
 
 //            ci::gl::translate(whereAmI);
