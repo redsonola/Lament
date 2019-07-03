@@ -655,6 +655,7 @@ public:
         std::string _parentName;
         ci::vec3 lastAngle;
         ci::vec3 _origAnchorPos;
+        ci::vec3 _curEndPoint;
         
     protected:
         Axis _axis;
@@ -684,9 +685,11 @@ public:
             return _parentName;
         }
         
+        ci::vec3 getCurEndPoint()
+        {
+            return _curEndPoint;
+        }
 
-        
-        
         void setSignal(OutputSignalAnalysis *s1)
         {
             ugen=s1;
@@ -715,24 +718,6 @@ public:
                 _angles.push_back( sample->getRelativeBoneAngles() );
                 lastAngle = sample->getRelativeBoneAngles();
             }
-            
-            
-            //update anchor pos...
-//            lastAngle = _angles[_angles.size()-1]; //draw only last position
-//            doAnchorPosCalcs();
-//            double rotateAngle = convertToRadiansAndRelativeNotchAngle(lastAngle, getName()) ; //convert to radians
-//
-//            double radius = _boneLength.y;
-//            //hack hack hack
-//            if(!_name.compare("ChestBottom"))radius = _boneLength.y*0.65;
-//
-//            _curAnchorPos.x = radius*cos(-rotateAngle  + M_PI_2) + _parent->getAnchorPos().x;
-//            _curAnchorPos.y = radius*-sin(-rotateAngle + M_PI_2) + _parent->getAnchorPos().y;
-            
-//            _curAnchorPos.x = radius*cos(-rotateAngle ) + _parent->getAnchorPos().x;
-//            _curAnchorPos.y = radius*-sin(-rotateAngle ) + _parent->getAnchorPos().y;
-
-
         };
         
         virtual double convertToRadiansAndRelativeNotchAngle(ci::vec3 angle, std::string name)
@@ -773,34 +758,34 @@ public:
             return _boneLength;
         }
         
-        virtual double getParentNotchAngle()
-        {
-            float parentAngle;
-            if(_axis==Axis::X)
-            {
-                parentAngle = _parent->getRelativeAngle().x;
-            }
-            else if(_axis==Axis::Y)
-            {
-                parentAngle = _parent->getRelativeAngle().y;
-                
-            }
-            else
-            {
-                parentAngle = _parent->getRelativeAngle().z;
-            }
-            
-//            if(!_name.compare("LeftUpperArm") || !_name.compare("RightUpperArm"))
+//        virtual double getParentNotchAngle()
+//        {
+//            float parentAngle;
+//            if(_axis==Axis::X)
 //            {
-//                parentAngle+= M_PI;
+//                parentAngle = _parent->getRelativeAngle().x;
 //            }
-//            if(!_name.compare("LeftForeArm") || !_name.compare("RightForeArm"))
+//            else if(_axis==Axis::Y)
 //            {
-//                parentAngle+= M_PI;
+//                parentAngle = _parent->getRelativeAngle().y;
+//
 //            }
-            return parentAngle;
-            
-        }
+//            else
+//            {
+//                parentAngle = _parent->getRelativeAngle().z;
+//            }
+//
+////            if(!_name.compare("LeftUpperArm") || !_name.compare("RightUpperArm"))
+////            {
+////                parentAngle+= M_PI;
+////            }
+////            if(!_name.compare("LeftForeArm") || !_name.compare("RightForeArm"))
+////            {
+////                parentAngle+= M_PI;
+////            }
+//            return parentAngle;
+//
+//        }
         virtual ci::vec3 getAnchorPos()
         {
             return _curAnchorPos;
@@ -815,78 +800,26 @@ public:
         {
             return _origAnchorPos;
         }
-    
         
-        //ok now just do the calculations...
-        ci::vec2 parentTranslationsAndRotationsCalcs()
+        ci::vec3 xform2DPointUsingCurModelView(ci::vec3 pt)
         {
-            //ok need to now do the calcs
-            //            _curAnchorPos.x = radius*cos(-rotateAngle  + M_PI_2) + _parent->getAnchorPos().x;
-            //            _curAnchorPos.y = radius*-sin(-rotateAngle + M_PI_2) + _parent->getAnchorPos().y;
-            
-            ci::vec2 parentAnchor, curAnchor, whereAmI(0,0);
-            if(_parent != NULL){
-                whereAmI = _parent->parentTranslationsAndRotationsCalcs();
-                curAnchor.x = _parent->getStartAnchorPos().x - whereAmI.x;
-                curAnchor.y = _parent->getStartAnchorPos().y - whereAmI.y;
-                whereAmI.x+=curAnchor.x;
-                whereAmI.y+=curAnchor.y;
-                
-                float rotateAngle = convertToRadiansAndRelativeNotchAngle(lastAngle, getName());
-//
-//                x’ = x cos β – y sin β
-//
-//                y’ = x sin β + y cos β
-                
-//                whereAmI.x -= _parent->getStartAnchorPos().x;
-//                whereAmI.y -= _parent->getStartAnchorPos().y;
-
-                whereAmI.x += _boneLength.x*cos(-(rotateAngle + M_PI_2));
-                whereAmI.y += _boneLength.y*-sin(-(rotateAngle + M_PI_2));
-                
-//                ci::gl::rotate(convertToRadiansAndRelativeNotchAngle(lastAngle, getName()));
-                
-                //ci::gl::drawSolidRect(ci::Rectf(ci::vec2(0,0), ci::vec2(_boneLength.x,-_boneLength.y))); //y is minus bc it is drawn upward from the anchor position
-                
-                //can you get the transformation matrix from OpenGL????
-
-            }
-            //            std::cout <<_name << ": Where am I? " << whereAmI.x << "," << whereAmI.y << std::endl;
-            return whereAmI;
-        }
-        
-        void doAnchorPosCalcs()
-        {
-            ci::vec2 curAnchor = ci::vec2(_curAnchorPos.x, _curAnchorPos.y);
-            
-//            mat4 getModelMatrix ()
-//            mat4 getViewMatrix ()
-//            mat4 getProjectionMatrix ()
-//            mat4 getModelView()
-
-//            Matrix4f::transformPoint ->  vec4 pt = mat4() * vec4(1,0,0,1)
-            
             ci::mat4 modelView = ci::gl::getModelView();
-            ci::mat4 proj = ci::gl::getProjectionMatrix();
-
-
-            ci::vec4 row1(1, 0, 0, getStartAnchorPos().x );
-            ci::vec4 row2(0, 1, 0, getStartAnchorPos().y );
+            ci::vec4 row1(1, 0, 0, pt.x );
+            ci::vec4 row2(0, 1, 0, pt.y );
             ci::vec4 row3(0, 0, 1, 0 );
             ci::vec4 row4(0, 0, 0, 1 );
             ci::mat4 anchor(row1, row2, row3, row4);
             ci::mat4 newAnchor = anchor * modelView;
-            
             ci::vec4 mvm = newAnchor * ci::vec4(1,0,0,1);
-            std::cout << mvm << std::endl;
-//            std::cout << proj << std::endl;
+            return ci::vec3(mvm[0], mvm[1], 0);
+        }
+    
+        void doAnchorPosCalcs()
+        {
+            _curAnchorPos = xform2DPointUsingCurModelView(getStartAnchorPos());
+            ci::gl::translate(ci::vec2(0, -_boneLength.y));
+            _curEndPoint = xform2DPointUsingCurModelView(getStartAnchorPos());
 
-            _curAnchorPos = ci::vec3(newAnchor[0][3], newAnchor[1][3], 0);
-//
-
-            
-//            ci::vec3 pointInObjectSpace = ci::vec2(curAnchor.x, curAnchor.y, 0);
-//            ci::vec2 pov = modelView.  transformPoint( pointInObjectSpace );
         }
         
         ci::vec2 parentTranslationsAndRotations()
@@ -901,53 +834,37 @@ public:
 
                 ci::gl::translate(curAnchor);
                 ci::gl::rotate(convertToRadiansAndRelativeNotchAngle(lastAngle, getName()));
-
-                //ci::gl::drawSolidRect(ci::Rectf(ci::vec2(0,0), ci::vec2(_boneLength.x,-_boneLength.y))); //y is minus bc it is drawn upward from the anchor position
-
-
-
             }
-//            std::cout <<_name << ": Where am I? " << whereAmI.x << "," << whereAmI.y << std::endl;
             return whereAmI;
         }
         
         void drawAnchorPoints()
         {
+//            if(_name.compare("LeftForeArm") && _name.compare("RightForeArm"))
+//                return;
             //draw the anchor point tho.
             ci::gl::color(1.0f, 1.0f, 1.0f, 1.0f);
             ci::gl::drawSolidCircle(ci::vec2(getAnchorPos().x,getAnchorPos().y), 3);
-            if(!_parent) return;
+             if(!_parent) return;
             
             ci::gl::color(1.0f, 0.0f, 1.0f, 0.4f);
-            ci::gl::drawSolidCircle(ci::vec2(_parent->getAnchorPos().x,_parent->getAnchorPos().y), 3);
+            ci::gl::drawSolidCircle(ci::vec2(_curEndPoint.x,_curEndPoint.y), 3);
             
             ci::gl::color(1.0f, 1.0f, 1.0f, 1.0f);
         }
         
         virtual void draw(float seconds = 0)
         {
-
             if(!_parent) return;
 
-            ci::gl::color(1.0f, 0.5f, 0.5f, 0.5f);
-            float rotateAngle = convertToRadiansAndRelativeNotchAngle(lastAngle, getName()); //convert to radians
-            
-//float rotateAngle = 0; //see the figure w/no rotation
-            
             ci::gl::pushModelMatrix();
-//            ci::gl::translate(_parent->getAnchorPos());
-//            std::cout << "------\n";
             ci::vec2 whereAmI = parentTranslationsAndRotations();
-            doAnchorPosCalcs();
-//            ci::gl::rotate(rotateAngle);
-
-//            ci::gl::translate(whereAmI);
-//            std::cout << "Final where Am I? "<< whereAmI << std::endl;
-//            std::cout << "Vs Anchor Pos :" << _parent->getAnchorPos() << std::endl;
-
-//            std::cout << "------\n";
+            ci::gl::color(1.0f, 0.5f, 0.5f, 0.5f);
             ci::gl::drawSolidRect(ci::Rectf(ci::vec2(0,0), ci::vec2(_boneLength.x,-_boneLength.y))); //y is minus bc it is drawn upward from the anchor position
+            doAnchorPosCalcs();
             ci::gl::popModelMatrix();
+            drawAnchorPoints();
+
 
         }
         
