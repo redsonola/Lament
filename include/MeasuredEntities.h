@@ -155,24 +155,30 @@ public:
     {
     protected:
         std::vector<BodyPartSensor * > bodyParts; //assuming sensor is measuring some body part
-        std::vector<NotchBoneFigureVisualizer *> figure;
+        NotchBoneFigureVisualizer *figure;
 
     public:
         Entity() : UGEN()
         {
-            double w = ci::app::getWindowWidth() * 0.25;
-            int i=0; //(>_<)
+//            double w = ci::app::getWindowWidth() * 0.25;
+//            int i=0; //(>_<)
+//            
+//            for (Axis axis : AxisList)
+//            {
+//                figure.push_back(new NotchBoneFigureVisualizer(axis, w + w*i));
+//                i++; //(>_<)
+//            }
+            
+//            double w = ci::app::getWindowWidth() * 0.5;
+            figure = new NotchBoneFigureVisualizer();
 
-            for (Axis axis : AxisList)
-            {
-                figure.push_back(new NotchBoneFigureVisualizer(axis, w + w*i));
-                i++; //(>_<)
-            }
         }
         void addBodyPart(BodyPartSensor *part)
         {
-            for(NotchBoneFigureVisualizer *f: figure)
-                f->setInputSignal(part->getWhichBodyPart(), part->getAvgSignal());
+//            for(NotchBoneFigureVisualizer *f: figure)
+//                f->setInputSignal(part->getWhichBodyPart(), part->getAvgSignal());
+            
+            figure->setInputSignal(part->getWhichBodyPart(), part->getAvgSignal());
             bodyParts.push_back(part);
         }
         
@@ -182,8 +188,9 @@ public:
             for(int i=0; i<bodyParts.size(); i++)
                 bodyParts[i]->update(seconds);
             
-            for(NotchBoneFigureVisualizer *f: figure)
-                f->update(seconds);
+//            for(NotchBoneFigureVisualizer *f: figure)
+//                f->update(seconds);
+            figure->update(seconds);
             
         };
         
@@ -211,8 +218,9 @@ public:
             {
                 bodyParts[i]->draw();
             }
-            for(NotchBoneFigureVisualizer *f: figure)
-                f->draw();
+//            for(NotchBoneFigureVisualizer *f: figure)
+//                f->draw();
+            figure->draw();
         }
     
     };

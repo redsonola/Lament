@@ -95,6 +95,11 @@ protected:
     
     osc::SenderUdp             mSender;
     osc::SenderUdp             mWekSender;
+    
+    //moving to 3d drawing
+    void drawGrid(float size, float step);
+    ci::CameraPersp     mCamera;
+
 
     void sendOSC(std::string addr, float value);
     
@@ -613,11 +618,46 @@ void FeverRhythmCycleMain::update()
     
 }
 
+void FeverRhythmCycleMain::drawGrid(float size=100.0f, float step=2.0f)
+{
+    //draw 3d grid on the screen
+    
+    gl::color(Colorf(0.2f, 0.2f, 0.2f));
+    for (float i = -size; i <= size; i += step)
+    {
+        gl::drawLine(vec3(i, 0.0f, -size), vec3(i, 0.0f, size));
+        gl::drawLine(vec3(-size, 0.0f, i), vec3(size, 0.0f, i));
+    }
+}
+
+
+
 //draw the entities
 void FeverRhythmCycleMain::draw()
 {
     
     gl::clear( Color( 0, 0, 0 ) );
+    
+    gl::color(1, 1, 0, 1);
+    ci::gl::setMatrices(mCamera);
+    
+    // enable the depth buffer (after all, we are doing 3D)
+    gl::enableDepthRead();
+    gl::enableDepthWrite();
+    
+    //    // draw the grid on the floor
+    drawGrid();
+    
+    gl::color(1,0,1,1);
+    ci::gl::drawSphere(ci::vec3(0, 0, 0), 0.05f);
+    ci::gl::drawSphere(ci::vec3(0, 12, 0), 0.1f);
+    ci::gl::drawSphere(ci::vec3(0, 0, 15), 0.1f);
+    ci::gl::drawSphere(ci::vec3(15, 0, 0), 0.1f);
+    gl::color(0,1,1,1);
+    ci::gl::drawSphere(ci::vec3(0, -15, 0), 0.1f);
+    ci::gl::drawSphere(ci::vec3(0, 0, -20), 0.1f);
+    ci::gl::drawSphere(ci::vec3(-20, 0, 0), 0.1f);
+
     
     for(int i=0; i<mPeople.size(); i++)
     {

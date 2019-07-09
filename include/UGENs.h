@@ -753,6 +753,22 @@ public:
             return a;
         }
         
+        ci::vec3 getAxis()
+        {
+            if(_axis==Axis::X)
+            {
+                return ci::vec3(1.0f, 0.0f, 0.0f);
+            }
+            else if(_axis==Axis::Y)
+            {
+                return ci::vec3(1.0f, 0.0f, 0.0f);
+            }
+            else
+            {
+                return ci::vec3(1.0f, 0.0f, 0.0f);
+            }
+        }
+        
         virtual ci::vec3 getBoneLength()
         {
             return _boneLength;
@@ -813,13 +829,73 @@ public:
             ci::vec4 mvm = newAnchor * ci::vec4(1,0,0,1);
             return ci::vec3(mvm[0], mvm[1], 0);
         }
+        
+        ci::vec3 xform3DPointUsingCurModelView(ci::vec3 pt)
+        {
+            ci::mat4 modelView = ci::gl::getModelView();
+            ci::vec4 row1(1, 0, 0, pt.x );
+            ci::vec4 row2(0, 1, 0, pt.y );
+            ci::vec4 row3(0, 0, 1, pt.z );
+            ci::vec4 row4(0, 0, 0, 1 );
+            ci::mat4 anchor(row1, row2, row3, row4);
+            ci::mat4 newAnchor = anchor * modelView;
+            ci::vec4 mvm = newAnchor * ci::vec4(1,0,0,1);
+            return ci::vec3(mvm[0], mvm[1], mvm[2]);
+        }
     
         void doAnchorPosCalcs()
         {
-            _curAnchorPos = xform2DPointUsingCurModelView(getStartAnchorPos());
-            ci::gl::translate(ci::vec2(0, -_boneLength.y));
-            _curEndPoint = xform2DPointUsingCurModelView(getStartAnchorPos());
+            _curAnchorPos = xform3DPointUsingCurModelView(getStartAnchorPos());
+            
+            ci::gl::pushModelMatrix();
+            ci::gl::translate(ci::vec3(0, -_boneLength.y, 0));
+            _curEndPoint = xform3DPointUsingCurModelView(getStartAnchorPos());
+            ci::gl::popModelMatrix();
 
+        }
+        
+        float scaleValue(float val, float lastmin, float lastmax, float newmin, float newmax)
+        {
+            float newval = (val-lastmin)/(lastmax-lastmin); //-1to1 --- 0.5-(-1)/(2) = 1.5/2 = 0.75
+            newval =  (newval*(newmax-newmin))+ newmin; //1to10 --- (0.75*9) + 1 = 0.75
+            return newval;
+        }
+        
+        ci::vec3 scaleTo3dCoords(ci::vec3 pt)
+        {
+//            ci::gl::drawSphere(ci::vec3(0, 12, 0), 0.1f);
+//            ci::gl::drawSphere(ci::vec3(0, 0, 15), 0.1f);
+//            ci::gl::drawSphere(ci::vec3(15, 0, 0), 0.1f);
+//            gl::color(0,1,1,1);
+//            ci::gl::drawSphere(ci::vec3(0, -15, 0), 0.1f);
+//            ci::gl::drawSphere(ci::vec3(0, 0, -20), 0.1f);
+//            ci::gl::drawSphere(ci::vec3(-20, 0, 0), 0.1f);
+            
+            //  ranges --> x = -20, 15; y = -15, 12; z=-20, 15
+            
+            float x = scaleValue(pt.x, 0,  ci::app::getWindowWidth(), -5, 10);
+            float y = scaleValue(pt.y, 0, ci::app::getWindowHeight(), -5, 10);
+            float z = scaleValue(pt.z, 0, ci::app::getWindowHeight(), -5, 10);//scaleValue(pt.z, ci::app::getWindowWidth(), ci::app::getWindowHeight(), -20, 15);
+            
+            return ci::vec3(x, y, z);
+
+        }
+        
+        float scaleOneVal(float val, Axis axis)
+        {
+            if(_axis==Axis::X)
+            {
+                val = scaleValue(val, 0,  ci::app::getWindowWidth(), -5, 10);
+            }
+            else if(_axis==Axis::Y)
+            {
+                val = scaleValue(val, 0, ci::app::getWindowHeight(), -5, 10);
+            }
+            else
+            {
+                val = scaleValue(val, 0, ci::app::getWindowWidth(), -5, 10);
+            }
+            return val;
         }
         
         ci::vec2 parentTranslationsAndRotations()
@@ -832,8 +908,49 @@ public:
                 whereAmI.x+=curAnchor.x;
                 whereAmI.y+=curAnchor.y;
 
-                ci::gl::translate(curAnchor);
-                ci::gl::rotate(convertToRadiansAndRelativeNotchAngle(lastAngle, getName()));
+//                ci::gl::translate(curAnchor);
+//                ci::gl::rotate(convertToRadiansAndRelativeNotchAngle(lastAngle, getName()));
+                
+                ci::vec3 translateVector = scaleTo3dCoords(ci::vec3(curAnchor.x, curAnchor.y, 0));
+                translateVector.z = 0;
+//                translateVector.x = 0;
+
+                ci::gl::translate(translateVector);
+
+//                ci::gl::rotate(convertToRadiansAndRelativeNotchAngle(lastAngle, getName()));
+                
+                //this new rotate
+                ci::gl::rotate (convertToRadiansAndRelativeNotchAngle(lastAngle, getName()), ci::vec3(0.0f, 1.0f, 0.0f));
+
+//                ci::gl::rotate(ci::vec3(convertToRadiansAndRelativeNotchAngle(lastAngle, getName()), 0, 0));
+            }
+            return whereAmI;
+        }
+        
+        virtual ci::vec3 translationsAndRotations3d()
+        {
+            ci::vec3 parentAnchor, curAnchor, whereAmI(0,0,0);
+            if(_parent != NULL){
+                whereAmI = _parent->translationsAndRotations3d();
+                curAnchor.x = _parent->getStartAnchorPos().x - whereAmI.x;
+                curAnchor.y = _parent->getStartAnchorPos().y - whereAmI.y;
+                whereAmI.x+=curAnchor.x;
+                whereAmI.y+=curAnchor.y;
+                
+                //                ci::gl::translate(curAnchor);
+                //                ci::gl::rotate(convertToRadiansAndRelativeNotchAngle(lastAngle, getName()));
+                
+                ci::vec3 translateVector = scaleTo3dCoords(ci::vec3(curAnchor.x, curAnchor.y, 0));
+                translateVector.z = 0;
+                translateVector.x = 0;
+                ci::gl::translate(translateVector);
+                
+                //                ci::gl::rotate(convertToRadiansAndRelativeNotchAngle(lastAngle, getName()));
+                
+                //this new rotate
+                ci::gl::rotate (convertToRadiansAndRelativeNotchAngle(lastAngle, getName()), ci::vec3(1.0f, 0.0f, 0.0f));
+                
+                //                ci::gl::rotate(ci::vec3(convertToRadiansAndRelativeNotchAngle(lastAngle, getName()), 0, 0));
             }
             return whereAmI;
         }
@@ -844,11 +961,23 @@ public:
 //                return;
             //draw the anchor point tho.
             ci::gl::color(1.0f, 1.0f, 1.0f, 1.0f);
-            ci::gl::drawSolidCircle(ci::vec2(getAnchorPos().x,getAnchorPos().y), 3);
+//            ci::gl::drawSolidCircle(ci::vec2(getAnchorPos().x,getAnchorPos().y), 3);
+            
+            ci::vec3 endpt1 = scaleTo3dCoords(ci::vec3(getStartAnchorPos().x, getStartAnchorPos().y, 0 ));
+            endpt1.z = 0;
+            endpt1.x =0;
+            
+             ci::gl::drawSphere(endpt1, 0.1f);
              if(!_parent) return;
+        
             
             ci::gl::color(1.0f, 0.0f, 1.0f, 0.4f);
-            ci::gl::drawSolidCircle(ci::vec2(_curEndPoint.x,_curEndPoint.y), 3);
+
+            ci::vec3 endpt2 = scaleTo3dCoords(ci::vec3(_boneLength.x, _boneLength.y, 0));
+            endpt2.z = 0;
+            endpt2.x = 0;
+
+            ci::gl::drawSphere(endpt2, 0.1f);
             
             ci::gl::color(1.0f, 1.0f, 1.0f, 1.0f);
         }
@@ -856,20 +985,161 @@ public:
         virtual void draw(float seconds = 0)
         {
             if(!_parent) return;
-
+            
             ci::gl::pushModelMatrix();
-            ci::vec2 whereAmI = parentTranslationsAndRotations();
-            ci::gl::color(1.0f, 0.5f, 0.5f, 0.5f);
-            ci::gl::drawSolidRect(ci::Rectf(ci::vec2(0,0), ci::vec2(_boneLength.x,-_boneLength.y))); //y is minus bc it is drawn upward from the anchor position
-            doAnchorPosCalcs();
+            ci::vec3 endpt1, endpt2;
+           
+            ci::gl::color(1.0f, 1.0f, 0.0f, 1.0f);
+             
+            ci::gl::rotate(M_PI, ci::vec3(1.0, 0.0, 0.0));
+
+            ci::gl::translate(scaleOneVal(getStartAnchorPos().x, Axis::X)-5.0, 0, 0.0);
+//            ci::gl::rotate (convertToRadiansAndRelativeNotchAngle(lastAngle, getName()), ci::vec3(1.0f, 0.0f, 0.0f));
+//            
+//            std::cout << "last angle: " << convertToRadiansAndRelativeNotchAngle(lastAngle, getName()) << std::endl;
+
+            translationsAndRotations3d();
+            endpt1 = ci::vec3(0, 0, 0);
+            endpt2 = ci::vec3(0, scaleOneVal(-_boneLength.y, Axis::Y), 0);
+            ci::gl::drawLine(endpt1, endpt2);
             ci::gl::popModelMatrix();
-            drawAnchorPoints();
-
-
+            
+//            ci::gl::pushModelMatrix();
+//            ci::vec2 whereAmI = parentTranslationsAndRotations();
+//            ci::gl::rotate(M_PI, ci::vec3(0.0f, 1.0f, 0.0f));
+//            ci::gl::color(1.0f, 0.5f, 0.5f, 0.5f);
+////            ci::gl::drawSolidRect(ci::Rectf(ci::vec2(0,0), ci::vec2(_boneLength.x,-_boneLength.y))); //y is minus bc it is drawn upward from the anchor position
+//
+//            ci::vec3 endpt1 = scaleTo3dCoords(ci::vec3(getStartAnchorPos().x, getStartAnchorPos().y, 0 ));
+//            endpt1.z = 0;
+//            endpt1.x = 0;
+//            endpt1.y = 0;
+//
+//
+//            ci::vec3 endpt2 = scaleTo3dCoords(ci::vec3(_boneLength.x, -_boneLength.y, 0));
+//            endpt2.z = 0;
+////            endpt2.x = 0;
+//
+//            ci::gl::drawLine(endpt1, endpt2);
+//
+//            drawAnchorPoints();
+//
+//            std::cout << getName() << ":" << scaleTo3dCoords(ci::vec3(getStartAnchorPos().x, getStartAnchorPos().y, 0 )) << ","
+//            << scaleTo3dCoords(ci::vec3(_boneLength.x, -_boneLength.y, 0)) << std::endl ;
+//
+//            doAnchorPosCalcs();
+//
+//            std::cout << getName() << ":" <<  scaleTo3dCoords(ci::vec3(getAnchorPos().x, getAnchorPos().y, getAnchorPos().z )) << ","
+//            << scaleTo3dCoords(ci::vec3(_curEndPoint.x, _curEndPoint.y, _curEndPoint.z)) << std::endl ;
+//
+//
+//
+//            ci::gl::popModelMatrix();
+////            drawAnchorPoints();
+//
+//
         }
-        
+
     };
     
+    //visualizes one 3D bone
+    class MocapDataVisualizerNotchFigure3DBone : public MocapDataVisualizerNotchFigure2DBone
+    {
+    public:
+        MocapDataVisualizerNotchFigure3DBone(std::string name, ci::vec3 startAnchorPos, ci::vec3 boneLength, std::string parentName, OutputSignalAnalysis *s1=NULL, MocapDataVisualizerNotchFigure2DBone *parent=NULL, int bufsize=48, SignalAnalysis *s2 = NULL) : MocapDataVisualizerNotchFigure2DBone(name, startAnchorPos, boneLength, parentName, Axis::X, s1, parent, bufsize, s2)
+        {
+            
+            
+        };
+        
+        virtual double radians(ci::vec3 angle, Axis axis)
+        {
+            //idea -- for arms -- ADD the angles...??
+            
+            float a;
+            if(axis==Axis::X)
+            {
+                a = angle.x;
+            }
+            else if(axis==Axis::Y)
+            {
+                a = angle.y;
+            }
+            else
+            {
+                a = angle.z;
+            }
+            
+            a *= ( M_PI/180.0);
+            
+            if((!getName().compare("LeftUpperArm") || !getName().compare("RightUpperArm")))
+            {
+                a+= M_PI_2;
+            }
+            //            if(!name.compare("LeftForeArm") || !name.compare("RightForeArm"))
+            //            {
+            //                a+= M_PI;
+            ////                std::cout << name << ": " << _axis << " angle " << a/M_PI << std::endl;
+            ////                a=-a;
+            //            }
+            return a;
+        }
+
+        
+        virtual ci::vec3 translationsAndRotations3d()
+        {
+            ci::vec3 parentAnchor, curAnchor, whereAmI(0,0,0);
+            if(_parent != NULL){
+                whereAmI = _parent->translationsAndRotations3d();
+                curAnchor.x = _parent->getStartAnchorPos().x - whereAmI.x;
+                curAnchor.y = _parent->getStartAnchorPos().y - whereAmI.y;
+                whereAmI.x+=curAnchor.x;
+                whereAmI.y+=curAnchor.y;
+                
+                ci::vec3 translateVector = ci::vec3(curAnchor.x, curAnchor.y, 0);
+                ci::gl::translate(translateVector);
+//                std::cout << getName() << "-- translate: " << translateVector << "   curAnchor: " << curAnchor << std::endl;
+                
+                //this new rotate
+                ci::gl::rotate (radians(lastAngle, Axis::X), ci::vec3(1.0f, 0.0f, 0.0f));
+                ci::gl::rotate (radians(lastAngle, Axis::Y), ci::vec3(0.0f, 1.0f, 0.0f));
+                ci::gl::rotate (radians(lastAngle, Axis::Z) , ci::vec3(0.0f, 0.0f, 1.0f));
+            }
+            return whereAmI;
+        }
+        
+        virtual void drawAnchorPoints()
+        {
+            
+            ci::gl::color(0.0f, 1.0f, 1.0f, 1.0f);
+            ci::gl::drawSphere(_curAnchorPos, 0.1f);
+            if(!_parent) return;
+            
+            ci::gl::color(1.0f, 0.0f, 1.0f, 1.0f);
+            ci::gl::drawSphere(_curEndPoint, 0.1f);
+        }
+        
+        
+        virtual void draw(float seconds = 0)
+        {
+            if(!_parent) return;
+            
+            ci::vec3 endpt1, endpt2;
+            endpt1 = ci::vec3(0, 0, 0);
+            endpt2 = ci::vec3(0, -_boneLength.y, 0);
+            
+            ci::gl::color(1.0f, 0.0f, 1.0f, 1.0f);
+            
+            ci::gl::pushModelMatrix();
+            ci::gl::rotate(M_PI, ci::vec3(1.0, 0.0, 0.0));
+            translationsAndRotations3d();
+            doAnchorPosCalcs();
+            ci::gl::drawLine(endpt1, endpt2);
+            ci::gl::popModelMatrix();
+            
+            drawAnchorPoints();
+        }
+    };
     
     //return a hard-coded bone visualizer given a name -- exact match
     class BoneFactory
@@ -881,7 +1151,7 @@ public:
         std::vector<double> length;
         std::vector<ci::vec3> anchorPos;
     public:
-        BoneFactory(double bodyStartX=ci::app::getWindowWidth() * 0.5)
+        BoneFactory(double bodyStartX=0)
         {
             //hack hack
             names = {"Root", "Hip", "ChestBottom", "LeftUpperArm", "LeftForeArm", "RightUpperArm", "RightForeArm"};
@@ -889,8 +1159,9 @@ public:
             
             thickness = 5;
             
-            double h = ci::app::getWindowHeight();
-            double bodyStartY = ci::app::getWindowHeight() * 0.85; //start of hip
+//            double h = ci::app::getWindowHeight();
+            double h = 20;
+            double bodyStartY = 0; //start of hip
             
             //okay think about these a bit -- Note: height will be minused from anchor
             length = {0, h*0.15, h*0.35, h*0.1, h*0.1, h*0.1, h*0.1 };
@@ -917,10 +1188,10 @@ public:
         };
         
         //note: will need to set parent outside of this class, but this class can ID the parent.
-        MocapDataVisualizerNotchFigure2DBone *createBone(std::string name_, Axis axis, int bufsize=48)
+        MocapDataVisualizerNotchFigure3DBone *createBone(std::string name_, int bufsize=48)
         {
             
-            MocapDataVisualizerNotchFigure2DBone *bone = NULL;
+            MocapDataVisualizerNotchFigure3DBone *bone = NULL;
             int index = getBoneIndex(name_);
             
             ci::vec3 len(0,0,0);
@@ -931,7 +1202,7 @@ public:
                 len.z = thickness;
                 len.y = length[index];
                 
-                bone = new MocapDataVisualizerNotchFigure2DBone(name_, anchorPos[index], len, parents[index], axis);
+                bone = new MocapDataVisualizerNotchFigure3DBone(name_, anchorPos[index], len, parents[index]);
             }
             return bone;
         };
@@ -961,7 +1232,7 @@ public:
     {
     protected:
         BoneFactory factory;
-        std::vector<MocapDataVisualizerNotchFigure2DBone *> bones;
+        std::vector<MocapDataVisualizerNotchFigure3DBone *> bones;
         
         void setParents()
         {
@@ -975,12 +1246,12 @@ public:
             }
         };
     public:
-        NotchBoneFigureVisualizer(Axis axis, double bodyStartX=ci::app::getWindowWidth() * 0.5) : MocapDataVisualizer(NULL, 0, 48, NULL), factory(bodyStartX)
+        NotchBoneFigureVisualizer(double bodyStartX=0) : MocapDataVisualizer(NULL, 0, 48, NULL), factory(bodyStartX)
         {
             //create all the bones
             for(int i=0; i<factory.getBoneCount(); i++)
             {
-                bones.push_back(factory.createBone(factory.getName(i), axis));
+                bones.push_back(factory.createBone(factory.getName(i)));
             }
             setParents();
         };
