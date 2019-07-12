@@ -84,6 +84,11 @@ public:
     void setup() override;
     //    void mouseDown( MouseEvent event ) override;
     void keyDown( KeyEvent event ) override;
+    void keyUp( KeyEvent event ) override;
+
+    void mouseDrag( MouseEvent event ) override;
+    void mouseDown( MouseEvent event ) override;
+
     
     void update() override;
     void draw() override;
@@ -99,6 +104,11 @@ protected:
     //moving to 3d drawing
     void drawGrid(float size, float step);
     ci::CameraPersp     mCamera;
+    ci::vec3 mLookAt, mEyePoint, mDefaultEyePoint;
+    void updateCamera();
+    void initCamera();
+    MouseEvent mLastMouseEvent;
+    bool mShiftKeyDown;
 
 
     void sendOSC(std::string addr, float value);
@@ -502,6 +512,8 @@ void FeverRhythmCycleMain::createNotchMotionData(std::string _id, std::vector<fl
 //set up osc
 void FeverRhythmCycleMain::setup()
 {
+    initCamera();
+    
     try{
         mSender.bind();
     }
@@ -582,11 +594,25 @@ void FeverRhythmCycleMain::keyDown( KeyEvent event )
         fs::path filename = getOpenFilePath();
         playOSC = new CRCPMotionAnalysis::PlayOSC(filename.c_str(), DESTHOST, LOCALPORT2, LOCALPORT + 10);
     }
+    if(event.getChar() == 'r')
+    {
+        std::cout << "Reset to default camera eyepoint coordinates\n";
+        mEyePoint = mDefaultEyePoint;
+    }
+    mShiftKeyDown = event.isShiftDown();
 }
+
+void FeverRhythmCycleMain::keyUp(KeyEvent event )
+{
+    mShiftKeyDown = event.isShiftDown();
+}
+
 
 //update entities and ugens and send OSC, if relevant
 void FeverRhythmCycleMain::update()
 {
+    updateCamera();
+    mShiftKeyDown = false;
     seconds = getElapsedSeconds(); //clock the time update is called to sync incoming messages
     
     //update sensors
@@ -630,6 +656,49 @@ void FeverRhythmCycleMain::drawGrid(float size=100.0f, float step=2.0f)
     }
 }
 
+void FeverRhythmCycleMain::mouseDown( MouseEvent event )
+{
+    mLastMouseEvent = event;
+}
+
+void FeverRhythmCycleMain::mouseDrag( MouseEvent event )
+{
+    ci::vec3 eyePointChange(0.0f, 0.0f, 0.0f);
+    eyePointChange.x = (float(event.getX() - mLastMouseEvent.getX())/float(ci::app::getWindowWidth()));
+    eyePointChange.y = (float(event.getY() - mLastMouseEvent.getY())/float(ci::app::getWindowHeight()));
+    
+//    std::cout << "eyePointChange: " << eyePointChange << std::endl;
+    
+    if(mShiftKeyDown)
+    {
+        mEyePoint.z+=eyePointChange.x;
+    }
+    else
+        mEyePoint.x+=(eyePointChange.x);
+    
+    mEyePoint.y+=eyePointChange.y;
+
+//    mLastMouseEvent = event;
+}
+
+void FeverRhythmCycleMain::initCamera()
+{
+    mEyePoint = mCamera.getEyePoint();
+    mDefaultEyePoint = mEyePoint;
+    mLookAt = ci::vec3(0,0,0); //mCamera.worldToScreen(<#const vec3 &worldCoord#>, <#float screenWidth#>, <#float screenHeight#>)
+}
+
+void FeverRhythmCycleMain::updateCamera()
+{
+
+
+    mCamera.setEyePoint( mEyePoint );
+//    mCamera.setPerspective( mFov, mObjectFbo->getAspectRatio(), mNearPlane, mFarPlane );
+//    mCamera.setLensShift( mLensShift );
+    mCamera.lookAt( mLookAt );
+    gl::setMatrices( mCamera );
+}
+
 
 
 //draw the entities
@@ -648,6 +717,8 @@ void FeverRhythmCycleMain::draw()
     //    // draw the grid on the floor
     drawGrid();
     
+
+    
     gl::color(1,0,1,1);
     ci::gl::drawSphere(ci::vec3(0, 0, 0), 0.05f);
     ci::gl::drawSphere(ci::vec3(0, 12, 0), 0.1f);
@@ -658,6 +729,9 @@ void FeverRhythmCycleMain::draw()
     ci::gl::drawSphere(ci::vec3(0, 0, -20), 0.1f);
     ci::gl::drawSphere(ci::vec3(-20, 0, 0), 0.1f);
 
+//    auto lambert = gl::ShaderDef().lambert();
+//    auto shader = gl::getStockShader( lambert );
+//    shader->bind();
     
     for(int i=0; i<mPeople.size(); i++)
     {
