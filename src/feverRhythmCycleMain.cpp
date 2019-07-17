@@ -696,6 +696,7 @@ void FeverRhythmCycleMain::updateCamera()
 //    mCamera.setPerspective( mFov, mObjectFbo->getAspectRatio(), mNearPlane, mFarPlane );
 //    mCamera.setLensShift( mLensShift );
     mCamera.lookAt( mLookAt );
+//    mCamera.lookAt(vec3(150, 100, 100), vec3(0));
     gl::setMatrices( mCamera );
 }
 
@@ -745,6 +746,8 @@ CINDER_APP( FeverRhythmCycleMain, RendererGl,
            {
                settings->setHighDensityDisplayEnabled( true );
                settings->setTitle("Fever Rhythm Cycle");
+               settings->setWindowSize(800, 600);
+
 //               settings->setFrameRate(FRAMERATE); //set fastest framerate
            } )
 

@@ -155,7 +155,8 @@ public:
     {
     protected:
         std::vector<BodyPartSensor * > bodyParts; //assuming sensor is measuring some body part
-        NotchBoneFigureVisualizer *figure;
+        NotchBoneFigure *figure;
+        ContractionIndex *ci;
 
     public:
         Entity() : UGEN()
@@ -170,7 +171,8 @@ public:
 //            }
             
 //            double w = ci::app::getWindowWidth() * 0.5;
-            figure = new NotchBoneFigureVisualizer();
+            figure = new NotchBoneFigure();
+            ci = new ContractionIndex(figure);
 
         }
         void addBodyPart(BodyPartSensor *part)
@@ -191,6 +193,7 @@ public:
 //            for(NotchBoneFigureVisualizer *f: figure)
 //                f->update(seconds);
             figure->update(seconds);
+            ci->update(seconds);
             
         };
         
@@ -221,6 +224,8 @@ public:
 //            for(NotchBoneFigureVisualizer *f: figure)
 //                f->draw();
             figure->draw();
+            ci->draw();
+
         }
     
     };

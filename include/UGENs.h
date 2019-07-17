@@ -347,7 +347,6 @@ public:
         }
         
         //if you wanted to send the signal somewhere
-        //if you wanted to send the signal somewhere
         std::vector<ci::osc::Message> getOSC()
         {
             std::vector<ci::osc::Message> msgs;
@@ -1206,7 +1205,7 @@ public:
     };
     
     //creates all bones that I am currently using
-    class NotchBoneFigureVisualizer : public MocapDataVisualizer
+    class NotchBoneFigure : public MocapDataVisualizer
     {
     protected:
         BoneFactory factory;
@@ -1224,7 +1223,7 @@ public:
             }
         };
     public:
-        NotchBoneFigureVisualizer(double bodyStartX=0) : MocapDataVisualizer(NULL, 0, 48, NULL), factory(bodyStartX)
+        NotchBoneFigure(double bodyStartX=0) : MocapDataVisualizer(NULL, 0, 48, NULL), factory(bodyStartX)
         {
             //create all the bones
             for(int i=0; i<factory.getBoneCount(); i++)
@@ -1234,16 +1233,24 @@ public:
             setParents();
         };
         
-        MocapDataVisualizerNotchFigure2DBone *getBone(std::string name_)
+        MocapDataVisualizerNotchFigure3DBone *getBone(std::string name_)
         {
             int index = factory.getBoneIndex(name_);
-//            std::cout << name_ << " has the index: " << index << "\n";
-
+            return getBone(index);
+        };
+        
+        MocapDataVisualizerNotchFigure3DBone *getBone(int index)
+        {
             if(index > -1 && index < bones.size())
                 return bones[index];
             else return NULL;
         };
         
+        int getBoneCount()
+        {
+            return factory.getBoneCount();
+        }
+
         void setInputSignal(std::string name, OutputSignalAnalysis *s1)
         {
             int index = factory.getBoneIndex(name);
@@ -1252,7 +1259,7 @@ public:
                 bones[index]->setSignal(s1);
 //                std::cout << "Input signal set for Bone " << name << " is set.\n ";
             }
-            else std::cout << "NotchBoneFigureVisualizer Error: Bone " << name << " is not found\n. ";
+            else std::cout << "NotchBoneFigure Error: Bone " << name << " is not found\n. ";
 
         }
         
@@ -1273,6 +1280,186 @@ public:
         }
         
         
+        
+    };
+    
+    class ContractionIndex : public SignalAnalysis
+    {
+    protected:
+        NotchBoneFigure *figure;
+        float mTotal, mScaledTotal;
+        float mRadius, mHeight, mVolume;
+    public:
+        ContractionIndex(NotchBoneFigure *figure_, int bufnum=48) : SignalAnalysis(NULL, bufnum, NULL)
+        {
+            figure = figure_;
+        }
+        
+        virtual void update(float seconds = 0)
+        {
+//            //find distance between forearm endpoints
+//            float foreArmDistance = getDistance("RightForeArm", "LeftForeArm");
+//
+//            //find distance between upper arm endpoints (elbows
+//            float upperArmDistance = getDistance("RightUpperArm", "LeftUpperArm");
+//
+//            //find distance between chest and forearms
+////            float foreArmChestDistance = getDistance("RightForeArm", "Hip", true, false) + getDistance("LeftForeArm", "Hip");
+////            float upperArmChestDistance = getDistance("RightUpperArm", "Hip", true, false) + getDistance("LeftUpperArm", "Hip");
+//
+//            //find distance between root and chest
+//            float torsoDistance = getDistance("ChestBottom", "Root", true, false);
+//
+//            //add all the distances
+//            float totalDistance = foreArmDistance + upperArmDistance + torsoDistance; // + foreArmChestDistance + upperArmChestDistance;
+//
+//            //scale the distance (not yet)
+//            std::cout << "Total Distance: " << totalDistance << std::endl;
+//
+//            const float MINIMUM_TOTAL_DISTANCE = 10; //with no movement or change, etc.
+//            mScaledTotal = totalDistance - MINIMUM_TOTAL_DISTANCE;
+//            std::cout << "Scaled Distance: " << mScaledTotal << std::endl;
+            
+            
+            //create a cylinder using furthest points up/down & left/right
+        
+            //lowest point is the root, so hip anchor pos
+            ci::vec3 p1 = figure->getBone("Root")->getAnchorPos();
+            
+            //find highest point (Y value)
+            ci::vec3 p2 = findHighestPoint();
+            
+            //find furthest point left from chest anchor
+            ci::vec3 leftP = findMostLeftPoint();
+            
+            //find furthest point from this left pt -- lets say its right altho could be z direction
+            ci::vec3 rightP = findFarestPointFrom(leftP);
+
+            //find the distance btw left & right
+             mRadius = ci::distance(ci::vec2(leftP.x,leftP.z) , ci::vec2(rightP.x,rightP.z));
+            
+            //find y distance between p1  & p2
+             mHeight = p2.y - p1.y;
+            
+            //ok, find the volume of this cylinder, which will be the contraction index
+             mVolume = M_PI * mRadius * mRadius * mHeight;
+            
+            //let's look at the values
+            std::cout << "update: volume: " << mVolume << "  height:" << mHeight << " radius:" << mRadius << std::endl;
+            
+
+        }
+        
+        virtual void draw()
+        {
+            ci::gl::color(1.0f, 1.0f, 1.0f, 1.0f );
+
+            drawCylinder(mRadius, mHeight);
+//            drawCylinder();
+//            drawCube();
+
+        }
+        
+        
+        virtual void drawCylinder(float radius, float height)
+        {
+            auto lambert = ci::gl::ShaderDef().lambert().color();
+            ci::gl::GlslProgRef shader = ci::gl::getStockShader( lambert );
+            ci::gl::BatchRef cylinder = ci::gl::Batch::create( ci::geom::Cylinder(), shader );
+            
+            ci::gl::pushModelMatrix();
+            ci::gl::scale( ci::vec3( radius, height/2.0f, radius ) );
+            ci::gl::color(  0, 1, 0, 0.5f);
+            cylinder->draw();
+            ci::gl::popModelMatrix();
+        }
+        
+        ci::vec3 findHighestPoint()
+        {
+            
+            ci::vec3 pt = figure->getBone(0)->getCurEndPoint();
+
+            for(int i=1; i<figure->getBoneCount(); i++)
+            {
+                if(pt.y < figure->getBone(i)->getCurEndPoint().y)
+                    pt = figure->getBone(i)->getCurEndPoint();
+            }
+            
+            return pt;
+        }
+        
+        ci::vec3 findMostLeftPoint()
+        {
+            //NOTE: I know that Root is the 1st bone, so I'm skipping
+            //Also, this will be the point that is furthest away in the x-axis -- may add z later?
+            
+            ci::vec3 startingPoint3d = figure->getBone("Hip")->getAnchorPos();
+            ci::vec2 startingPt(startingPoint3d.x, startingPoint3d.z);
+            
+            ci::vec3 pt = figure->getBone(1)->getCurEndPoint();
+            
+            for(int i=2; i<figure->getBoneCount(); i++)
+            {
+                ci::vec3 endingPoint3 = figure->getBone(i)->getCurEndPoint();
+                ci::vec2 endingPt(endingPoint3.x, endingPoint3.z);
+                ci::vec2 pt2(pt.x, pt.z);
+                
+                //make sure it is on the left side (x)
+                if(startingPt.x - endingPt.x >= 0){
+                    if(ci::distance(pt2, startingPt) >  ci::distance(endingPt, startingPt))
+                        pt = endingPoint3;
+                }
+            }
+
+            return pt;
+        }
+        
+        ci::vec3 findFarestPointFrom(ci::vec3 farestPt)
+        {
+            //NOTE: I know that Root is the 1st bone, so I'm skipping
+            //Also, this will be the point that is furthest away in the x-axis -- may add z later?
+            
+            
+            ci::vec2 fPt2(farestPt.x, farestPt.z);
+            
+            ci::vec3 pt = figure->getBone(1)->getCurEndPoint();
+            
+            for(int i=2; i<figure->getBoneCount(); i++)
+            {
+                ci::vec3 endingPoint3 = figure->getBone(i)->getCurEndPoint();
+                ci::vec2 endingPt(endingPoint3.x, endingPoint3.z);
+                ci::vec2 pt2(pt.x, pt.z);
+                
+                if(ci::distance(pt2, fPt2) <  ci::distance(endingPt, fPt2))
+                    pt = endingPoint3;
+            }
+            
+            return pt;
+        }
+        
+        float getDistance(std::string boneName1, std::string boneName2, bool useEnd=true, bool useEnd2=true)
+        {
+            MocapDataVisualizerNotchFigure3DBone *bone1 = figure->getBone(boneName1);
+            MocapDataVisualizerNotchFigure3DBone *bone2 = figure->getBone(boneName2);
+            
+            ci::vec3 pt1, pt2;
+            
+            if(useEnd)
+                pt1 =  bone1->getCurEndPoint();
+            else pt1 = bone1->getAnchorPos();
+            
+            if(useEnd2)
+                pt2 =  bone2->getCurEndPoint();
+            else pt2 = bone2->getAnchorPos();
+            
+            return ci::distance(pt1, pt2);
+        }
+        
+        std::vector<ci::osc::Message> getOSC()
+        {
+            std::vector<ci::osc::Message> msgs;
+            return msgs;
+        }
         
     };
 
