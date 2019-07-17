@@ -1205,6 +1205,8 @@ public:
     };
     
     //creates all bones that I am currently using
+    //TODO: Draw a static shoulder bone......
+    //See if that fixes some disrepencies...
     class NotchBoneFigure : public MocapDataVisualizer
     {
     protected:
@@ -1283,6 +1285,7 @@ public:
         
     };
     
+    //Doesn't really work for bending...
     class ContractionIndex : public SignalAnalysis
     {
     protected:
@@ -1297,30 +1300,7 @@ public:
         
         virtual void update(float seconds = 0)
         {
-//            //find distance between forearm endpoints
-//            float foreArmDistance = getDistance("RightForeArm", "LeftForeArm");
-//
-//            //find distance between upper arm endpoints (elbows
-//            float upperArmDistance = getDistance("RightUpperArm", "LeftUpperArm");
-//
-//            //find distance between chest and forearms
-////            float foreArmChestDistance = getDistance("RightForeArm", "Hip", true, false) + getDistance("LeftForeArm", "Hip");
-////            float upperArmChestDistance = getDistance("RightUpperArm", "Hip", true, false) + getDistance("LeftUpperArm", "Hip");
-//
-//            //find distance between root and chest
-//            float torsoDistance = getDistance("ChestBottom", "Root", true, false);
-//
-//            //add all the distances
-//            float totalDistance = foreArmDistance + upperArmDistance + torsoDistance; // + foreArmChestDistance + upperArmChestDistance;
-//
-//            //scale the distance (not yet)
-//            std::cout << "Total Distance: " << totalDistance << std::endl;
-//
-//            const float MINIMUM_TOTAL_DISTANCE = 10; //with no movement or change, etc.
-//            mScaledTotal = totalDistance - MINIMUM_TOTAL_DISTANCE;
-//            std::cout << "Scaled Distance: " << mScaledTotal << std::endl;
-            
-            
+
             //create a cylinder using furthest points up/down & left/right
         
             //lowest point is the root, so hip anchor pos
@@ -1343,11 +1323,28 @@ public:
             
             //ok, find the volume of this cylinder, which will be the contraction index
              mVolume = M_PI * mRadius * mRadius * mHeight;
+             mVolume = scaleVolume();
             
             //let's look at the values
             std::cout << "update: volume: " << mVolume << "  height:" << mHeight << " radius:" << mRadius << std::endl;
             
 
+        }
+        
+        //hack hack hack -- quick and dirty - bypassing my motiondata class... yikes
+        float scaleVolume()
+        {
+            const float MAX_RECORDED_VOLUME_EST = 650;
+            const float MIN_RECORDED_VOLUME_EST = 10;
+            
+            //scale
+            float volume = (mVolume-MIN_RECORDED_VOLUME_EST) / (MAX_RECORDED_VOLUME_EST-MIN_RECORDED_VOLUME_EST);
+            
+            //cap values 0 to 1
+            volume = std::min(volume, 1.0f);
+            volume = std::max(volume, 0.0f);
+            
+            return volume;
         }
         
         virtual void draw()
@@ -1458,6 +1455,13 @@ public:
         std::vector<ci::osc::Message> getOSC()
         {
             std::vector<ci::osc::Message> msgs;
+            
+            ci::osc::Message msg;
+            msg.setAddress(CI_OSCMESSAGE);
+            msg.append(mVolume);
+            
+            msgs.push_back(msg);
+            
             return msgs;
         }
         

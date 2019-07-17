@@ -211,6 +211,14 @@ public:
                     msgs.push_back(nmsgs[j]);
                 }
             }
+        
+            //hack hack hack
+            std::vector<ci::osc::Message> nmsgs = ci->getOSC();
+            for(int j=0; j<nmsgs.size(); j++)
+            {
+                msgs.push_back(nmsgs[j]);
+            }
+            
             return msgs;
         };
         

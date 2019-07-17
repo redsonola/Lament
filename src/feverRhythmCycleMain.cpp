@@ -18,6 +18,8 @@
 #define NOTCH_PEAK "/Notch/Peak"
 #define DERIVATIVE_OSCMESSAGE "/CBIS/Derivative"
 #define SIGAVG_OSCMESSAGE "/CBIS/Average"
+#define CI_OSCMESSAGE "/CBIS/CI" //send contraction index
+
 
 #define SEND_TO_WEKINATOR 1
 #define WEK_MESSAGE "/wek/inputs"
@@ -42,6 +44,9 @@
 #include "cinder/Log.h" //needed to log errors
 
 #include <sstream>
+#include <math.h>
+#include <algorithm>
+
 
 #include "CinderOpenCV.h"
 
