@@ -1285,17 +1285,57 @@ public:
         
     };
     
-    //Doesn't really work for bending...
-    class ContractionIndex : public SignalAnalysis
+    class FigureMeasure : public SignalAnalysis
     {
     protected:
         NotchBoneFigure *figure;
-        float mTotal, mScaledTotal;
-        float mRadius, mHeight, mVolume;
+        
+        //scales from 0 to 1
+        float scaledValue0to1(float input, float minVal, float maxVal)
+        {
+            float output = (input-minVal)/(maxVal-minVal);
+            
+            //cap values 0 to 1
+            output = std::min(output, 1.0f);
+            output = std::max(output, 0.0f);
+            
+            return output;
+        }
     public:
-        ContractionIndex(NotchBoneFigure *figure_, int bufnum=48) : SignalAnalysis(NULL, bufnum, NULL)
+        FigureMeasure(NotchBoneFigure *figure_, int bufnum=48) : SignalAnalysis(NULL, bufnum, NULL)
         {
             figure = figure_;
+        }
+        
+        virtual void draw()
+        {
+            
+        }
+    };
+    
+    //TODO
+    class ConvexShapeFromBoneEndPoints : public FigureMeasure
+    {
+        
+    };
+    
+    //find center of mass -- stable / unstable? -- wekinator?
+    class Centroid : public FigureMeasure
+    {
+        //http://adaptivemap.ma.psu.edu/websites/moment_intergrals/centroids_3D/centroids3D.html
+    };
+    
+    //Doesn't really work for bending yet...
+    //idea -- create a cone instead of a cylinder that gets larger or smaller... ?! or a frustrum?
+    class ContractionIndex : public FigureMeasure
+    {
+    protected:
+        float mTotal, mScaledTotal;
+        float mRadius, mHeight, mVolume;
+        //        float mSumDistanceFromRoot; //sum of the distance of all end points to the root bone //note:looks useless as a measure
+    public:
+        ContractionIndex(NotchBoneFigure *figure_, int bufnum=48) : FigureMeasure(figure_, bufnum)
+        {
         }
         
         virtual void update(float seconds = 0)
@@ -1322,13 +1362,16 @@ public:
              mHeight = p2.y - p1.y;
             
             //ok, find the volume of this cylinder, which will be the contraction index
+            //a thought (for tomorrow) -- currently, the chest is super long & always straight -- which is skewing the results -- could make it shorter
+            //or else remove torso movement from this equation for now.
              mVolume = M_PI * mRadius * mRadius * mHeight;
              mVolume = scaleVolume();
             
-            //let's look at the values
-            std::cout << "update: volume: " << mVolume << "  height:" << mHeight << " radius:" << mRadius << std::endl;
+//            mSumDistanceFromRoot = getSummedDistanceFromRoot();
+//            mSumDistanceFromRoot = scaleSummedDistance();
             
-
+            //let's look at the values
+//            std::cout << "update: volume: " << mVolume << "  height:" << mHeight << " radius:" << mRadius <<  " SumDistanceFromRoot:" << mSumDistanceFromRoot << std::endl;
         }
         
         //hack hack hack -- quick and dirty - bypassing my motiondata class... yikes
@@ -1336,25 +1379,42 @@ public:
         {
             const float MAX_RECORDED_VOLUME_EST = 650;
             const float MIN_RECORDED_VOLUME_EST = 10;
-            
-            //scale
-            float volume = (mVolume-MIN_RECORDED_VOLUME_EST) / (MAX_RECORDED_VOLUME_EST-MIN_RECORDED_VOLUME_EST);
-            
-            //cap values 0 to 1
-            volume = std::min(volume, 1.0f);
-            volume = std::max(volume, 0.0f);
-            
-            return volume;
+            return scaledValue0to1(mVolume,MIN_RECORDED_VOLUME_EST, MAX_RECORDED_VOLUME_EST );
         }
+        
+        //hack hack hack -- quick and dirty - bypassing my motiondata class... yikes
+//        float scaleSummedDistance()
+//        {
+//            const float MAX_RECORDED_DIST_EST = 40;
+//            const float MIN_RECORDED_DIST_EST = 34;
+//
+//            //scale
+//            float dist = (mSumDistanceFromRoot-MIN_RECORDED_DIST_EST) / (MAX_RECORDED_DIST_EST-MIN_RECORDED_DIST_EST);
+//
+//            //cap values 0 to 1
+//            dist = std::min(dist, 1.0f);
+//            dist = std::max(dist, 0.0f);
+//
+//            return dist;
+//        }
+        
+//        float getSummedDistanceFromRoot()
+//        {
+//            ci::vec3 root = figure->getBone(0)->getCurEndPoint(); //root bone
+//            float sum = 0;
+//
+//            for(int i=1; i<figure->getBoneCount(); i++)
+//            {
+//                sum += ci::distance(root, figure->getBone(i)->getCurEndPoint());
+//            }
+//            return sum;
+//        }
         
         virtual void draw()
         {
             ci::gl::color(1.0f, 1.0f, 1.0f, 1.0f );
 
             drawCylinder(mRadius, mHeight);
-//            drawCylinder();
-//            drawCube();
-
         }
         
         
@@ -1366,7 +1426,7 @@ public:
             
             ci::gl::pushModelMatrix();
             ci::gl::scale( ci::vec3( radius, height/2.0f, radius ) );
-            ci::gl::color(  0, 1, 0, 0.5f);
+            ci::gl::color(  0, 1, 0, 0.25f);
             cylinder->draw();
             ci::gl::popModelMatrix();
         }
@@ -1466,6 +1526,66 @@ public:
         }
         
     };
+    
+    class ArmHeight : public FigureMeasure
+    {
+    protected:
+        float mArmHeight, mLeftArmHeight, mRightArmHeight;
+    public:
+        ArmHeight(NotchBoneFigure *figure_, int bufnum=48) : FigureMeasure(figure_, bufnum)
+        {
+        }
+        
+        //TODO: calibrate these values -- also the CI
+        virtual void update(float seconds = 0)
+        {
+            mLeftArmHeight= armDistanceFromHipinY("Left");
+            const float MAX_RECORDED_LEFTARM_HEIGHT_EST = 17.8993;
+            const float MIN_RECORDED_LEFTARM_HEIGHT_EST = 13.842;
+            
+            mRightArmHeight= armDistanceFromHipinY("Right");
+            const float MAX_RECORDED_RIGHTARM_HEIGHT_EST = 16.1399;
+            const float MIN_RECORDED_RIGHTARM_HEIGHT_EST = 13.8946;
+            
+            const float MAX_RECORDED_ARM_HEIGHT_EST = 32.3537;
+            const float MIN_RECORDED_ARM_HEIGHT_EST = 27.7449;
+            mArmHeight = mLeftArmHeight + mRightArmHeight;
+            
+            //make sure left & right scaling is done AFTER scalling the combined arm heights since that is based on the unscaled sum
+            mArmHeight = scaledValue0to1(mArmHeight, MIN_RECORDED_ARM_HEIGHT_EST, MAX_RECORDED_ARM_HEIGHT_EST);
+            mRightArmHeight = scaledValue0to1(mRightArmHeight, MIN_RECORDED_RIGHTARM_HEIGHT_EST, MAX_RECORDED_RIGHTARM_HEIGHT_EST);
+            mLeftArmHeight = scaledValue0to1(mLeftArmHeight, MIN_RECORDED_LEFTARM_HEIGHT_EST, MAX_RECORDED_LEFTARM_HEIGHT_EST);
+            
+            std::cout << "mArmHeight:" << mArmHeight << " mLeftArmHeight: " << mLeftArmHeight << " mRightArmHeight:" << mRightArmHeight << std::endl;
+        }
+        
+        float armDistanceFromHipinY(std::string whichArm)
+        {
+            ci::vec3 pt = figure->getBone("Hip")->getAnchorPos();
+            ci::vec3 pt2 =  figure->getBone(whichArm+"UpperArm")->getAnchorPos();
+            ci::vec3 pt3 =  figure->getBone(whichArm+"ForeArm")->getAnchorPos();
+            
+            return (pt2.y-pt.y) + (pt3.y-pt.y);
+
+        }
+        
+        std::vector<ci::osc::Message> getOSC()
+        {
+            std::vector<ci::osc::Message> msgs;
+            
+            ci::osc::Message msg;
+            msg.setAddress(ARMHEIGHT_OSCMESSAGE);
+            msg.append(mArmHeight);
+            msg.append(mLeftArmHeight);
+            msg.append(mRightArmHeight);
+
+            msgs.push_back(msg);
+            
+            return msgs;
+        }
+        
+    };
+
 
 };
 

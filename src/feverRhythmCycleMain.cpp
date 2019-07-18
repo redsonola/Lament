@@ -19,6 +19,7 @@
 #define DERIVATIVE_OSCMESSAGE "/CBIS/Derivative"
 #define SIGAVG_OSCMESSAGE "/CBIS/Average"
 #define CI_OSCMESSAGE "/CBIS/CI" //send contraction index
+#define ARMHEIGHT_OSCMESSAGE "/CBIS/ArmHeight" //send relative arm height index
 
 
 #define SEND_TO_WEKINATOR 1

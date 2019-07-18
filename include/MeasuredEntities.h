@@ -47,36 +47,33 @@ public:
     {
         //which body part is the sensor of?
         whichBodyPart = sensor->getDeviceID();  //yip for now.
-        
-        std::vector<UGEN * > *bUgens; //the ugen vector to add ugens to
-        bUgens = &bodyPart;
         bodyPartInit = true;
         bodyPartID = idz;
         
         //add all the basic signal analysis that happens for ea. sensor
         InputSignal *signal_input = new InputSignal(idz); //1. create an input
         signal_input->setInput(sensor);
-        bUgens->push_back( signal_input );
+        bodyPart.push_back( signal_input );
         
         //add an averaging filter
         //AveragingFilter(SignalAnalysis *s1, int w=10, int bufsize=48, int sensorID=0, std::string whichPart="", bool sendOSC=false )
         
         AveragingFilter *avgfilter = new AveragingFilter(signal_input, 3, 16, idz, whichBodyPart, true);
-        bUgens->push_back( avgfilter );
+        bodyPart.push_back( avgfilter );
         avgSignal = avgfilter;
         
         Derivative *derivative = new Derivative(avgfilter, 16, idz, whichBodyPart, true);
-        bUgens->push_back( derivative );
+        bodyPart.push_back( derivative );
   
         //add the visualizer
         bodyPartVisualizer = new MocapDataVisualizer( avgfilter );
-        bUgens->push_back( bodyPartVisualizer );
+        bodyPart.push_back( bodyPartVisualizer );
         
         //add the notch bone angle visualizer
         if(sensor->getDeviceType() == MocapDeviceData::MocapDevice::NOTCH)
         {
             notchBoneVisualizer = new MocapDataVisualizerNotchBonePosition( avgfilter );
-            bUgens->push_back( notchBoneVisualizer );
+            bodyPart.push_back( notchBoneVisualizer );
         }
         
         //TODO: calibrate peak detection for notches - 6/14/2019
@@ -90,9 +87,9 @@ public:
         
         const double WAIT_BETWEEN_PEAKS_DEFAULT = 0.35; //the time to wait between declaring another peak has happened in seconds
                                                //you may want to vary this btw x, y, z instead of having the values for everything depending on how it is placed.
-        peaks = new FindPeaks(WAIT_BETWEEN_PEAKS_DEFAULT,avgfilter, idz);
-        bUgens->push_back(peaks);
+        peaks = new FindPeaks(WAIT_BETWEEN_PEAKS_DEFAULT,avgfilter, idz, whichBodyPart);
         peaks->setThreshes(THRESH_DEFAULT, THRESH_DEFAULT, THRESH_DEFAULT);
+        bodyPart.push_back(peaks);
     }
     
     inline OutputSignalAnalysis *getAvgSignal()
@@ -106,7 +103,7 @@ public:
     };
     
     
-    //do all the drawing here.
+    //do all the drawing here -- but its container class will draw it, kz
     virtual void draw()
     {
 //        bodyPartVisualizer->draw();
@@ -117,9 +114,10 @@ public:
     virtual std::vector<ci::osc::Message> getOSC()
     {
         std::vector<ci::osc::Message> msgs;
+        std::vector<ci::osc::Message> nmsgs;
         
         //this tests the peak -- the count is to differentiate it from the last peak
-        
+        //Send the peaks.......................
 //        if( peaks->getCombinedPeak() )
 //        {
 //            std::cout << "PEAK:" << count << std::endl ;
@@ -129,7 +127,7 @@ public:
         //ok I'll do it
         for (int i=0; i<bodyPart.size(); i++)
         {
-            std::vector<ci::osc::Message> nmsgs = bodyPart[i]->getOSC();
+            nmsgs = bodyPart[i]->getOSC();
 
             for(int j=0; j<nmsgs.size(); j++)
             {
@@ -156,7 +154,7 @@ public:
     protected:
         std::vector<BodyPartSensor * > bodyParts; //assuming sensor is measuring some body part
         NotchBoneFigure *figure;
-        ContractionIndex *ci;
+        std::vector<FigureMeasure * > figureMeasures;
 
     public:
         Entity() : UGEN()
@@ -172,7 +170,9 @@ public:
             
 //            double w = ci::app::getWindowWidth() * 0.5;
             figure = new NotchBoneFigure();
-            ci = new ContractionIndex(figure);
+            
+            figureMeasures.push_back(new ContractionIndex(figure));
+            figureMeasures.push_back(new ArmHeight(figure));
 
         }
         void addBodyPart(BodyPartSensor *part)
@@ -193,7 +193,10 @@ public:
 //            for(NotchBoneFigureVisualizer *f: figure)
 //                f->update(seconds);
             figure->update(seconds);
-            ci->update(seconds);
+            
+            for(int i=0; i<figureMeasures.size(); i++)
+                figureMeasures[i]->update(seconds);
+            
             
         };
         
@@ -201,22 +204,27 @@ public:
         virtual std::vector<ci::osc::Message> getOSC()
         {
             std::vector<ci::osc::Message> msgs;
+            std::vector<ci::osc::Message> nmsgs;
+            std::vector<ci::osc::Message> nmsgs2;
             
             for (int i=0; i<bodyParts.size(); i++)
             {
-                std::vector<ci::osc::Message> nmsgs = bodyParts[i]->getOSC();
+                nmsgs = bodyParts[i]->getOSC();
                 
                 for(int j=0; j<nmsgs.size(); j++)
                 {
                     msgs.push_back(nmsgs[j]);
                 }
             }
-        
-            //hack hack hack
-            std::vector<ci::osc::Message> nmsgs = ci->getOSC();
-            for(int j=0; j<nmsgs.size(); j++)
+            
+            for (int i=0; i<figureMeasures.size(); i++)
             {
-                msgs.push_back(nmsgs[j]);
+                nmsgs2 = figureMeasures[i]->getOSC();
+                
+                for(int j=0; j<nmsgs2.size(); j++)
+                {
+                    msgs.push_back(nmsgs2[j]);
+                }
             }
             
             return msgs;
@@ -232,7 +240,11 @@ public:
 //            for(NotchBoneFigureVisualizer *f: figure)
 //                f->draw();
             figure->draw();
-            ci->draw();
+            
+            for (int i=0; i<figureMeasures.size(); i++)
+            {
+                figureMeasures[i]->draw();
+            }
 
         }
     
