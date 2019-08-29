@@ -28,11 +28,18 @@ protected:
     bool bodyPartInit = false; //whether we have set up the body part ugens
     int bodyPartID; //this will correspond to wii mote # or some OSC id'ing the sensor
     std::string whichBodyPart; //which bone it is
-    
-    
+    MocapDeviceData::SendingDevice sendingDevice; //only accept data from one sending device (1st one)
+
     int count=0;
+    
+    //for the melodic/music output -- perhaps this is a temporary place...
+    MelodyGenerator *melodyGenerator;
+    std::vector<FactorOracle *> fo;
+    
 public:
-    enum BodyPart{ HIP=0, CHESTBOTTOM=1, LEFTUPPERARM=2, LEFTFOREARM=3, RIGHTUPPERARM=4, RIGHTFOREARM=5 }; //add body parts here. Doesn't have to be a body I suppose but you get what I mean.. --> need to change
+    enum BodyPart{ HIP=0, CHESTBOTTOM=1, LEFTUPPERARM=2, LEFTHAND=3, LEFTFOREARM=4,
+        RIGHTUPPERARM=5, RIGHTFOREARM=6, RIGHTHAND=7  }; //add body parts here. Doesn't have to be a body I suppose but you get what I mean.. --> need to change
+    
 
     BodyPartSensor(){
         bodyPartInit = false;
@@ -43,7 +50,12 @@ public:
         return bodyPartInit;
     };
 
-    void addSensor(int idz, SensorData *sensor)
+    void setBoneID(int id_)
+    {
+        bodyPartID = id_;
+    }
+    
+    void addSensor(int idz, SensorData *sensor, MocapDeviceData::SendingDevice device)
     {
         //which body part is the sensor of?
         whichBodyPart = sensor->getDeviceID();  //yip for now.
@@ -76,21 +88,55 @@ public:
             bodyPart.push_back( notchBoneVisualizer );
         }
         
+        //ok, add a melody generator. why not? //9/13/2019
+        loadGeneratedMelodies();
+        
         //TODO: calibrate peak detection for notches - 6/14/2019
         
         //add peak detection... note this is a bit hacky since I am relying on the the fact that the hand visualizer has already scaled this accel.
-        double THRESH_DEFAULT = 0.07; //peak must exceed this value to report a peak  -- currently calibrated for scope1 of syntienOSC from iphone
-        if(sensor->getDeviceType() == MocapDeviceData::MocapDevice::WIIMOTE)
-        {
-            THRESH_DEFAULT  =  0.002; //this will detect after a rather hard shake - raise or lower this number to make it easier to create a peak.
-        }
+        double THRESH_DEFAULT = 0.6; //peak must exceed this value to report a peak  -- currently calibrated for scope1 of syntienOSC from iphone
+//        double THRESH_DEFAULT = 0.002; //peak must exceed this value to report a peak  -- currently calibrated for scope1 of syntienOSC from iphone
+
+//        if(sensor->getDeviceType() == MocapDeviceData::MocapDevice::WIIMOTE)
+//        {
+//            THRESH_DEFAULT  =  0.002; //this will detect after a rather hard shake - raise or lower this number to make it easier to create a peak.
+//        }
         
-        const double WAIT_BETWEEN_PEAKS_DEFAULT = 0.35; //the time to wait between declaring another peak has happened in seconds
+        const double WAIT_BETWEEN_PEAKS_DEFAULT = 0.3; //the time to wait between declaring another peak has happened in seconds
                                                //you may want to vary this btw x, y, z instead of having the values for everything depending on how it is placed.
         peaks = new FindPeaks(WAIT_BETWEEN_PEAKS_DEFAULT,avgfilter, idz, whichBodyPart);
         peaks->setThreshes(THRESH_DEFAULT, THRESH_DEFAULT, THRESH_DEFAULT);
+        peaks->setMelodyGenerator(melodyGenerator); 
         bodyPart.push_back(peaks);
+        
+
+        
+        sendingDevice=device;
     }
+    
+    void loadGeneratedMelodies()
+    {
+        //for the melodic/music output -- perhaps this is a temporary place...
+        melodyGenerator = new MelodyGenerator( 1, 1, 1 );
+        
+        std::string folder = "/Users/courtney/Documents/cycling rhythms vocal experiment-uptodate/scores/track 1 midi files/";
+        std::string descant = "leftHandMelodyOptions.mid";
+//        std::string soprano = "firstShotFullMelody.mid";
+//        std::string tenor = "firstShotTenor.mid";
+
+        //TODO: put these in the same octave...
+        //create new melody generator section -- TODO: REFACTOR!!!!!!!!
+        FactorOracle *f = new FactorOracle();
+        f->train(folder + descant, 1);
+//        f->train(folder + soprano, 2);
+//        f->train(folder + tenor, 2);
+        
+        melodyGenerator->addGeneratorAlgorithm(f);
+        fo.push_back(f);
+        
+        melodyGenerator->turnOn1to1();
+        bodyPart.push_back(melodyGenerator);
+    };
     
     inline OutputSignalAnalysis *getAvgSignal()
     {
@@ -102,6 +148,10 @@ public:
         return whichBodyPart;
     };
     
+    inline MelodyGenerator *getMelodyGenerator()
+    {
+        return melodyGenerator;
+    }
     
     //do all the drawing here -- but its container class will draw it, kz
     virtual void draw()
@@ -116,14 +166,6 @@ public:
         std::vector<ci::osc::Message> msgs;
         std::vector<ci::osc::Message> nmsgs;
         
-        //this tests the peak -- the count is to differentiate it from the last peak
-        //Send the peaks.......................
-//        if( peaks->getCombinedPeak() )
-//        {
-//            std::cout << "PEAK:" << count << std::endl ;
-//            count++;
-//        }
-        
         //ok I'll do it
         for (int i=0; i<bodyPart.size(); i++)
         {
@@ -137,6 +179,34 @@ public:
         return msgs;
     };
     
+    //this is mostly just for calibration since during normal use we would just send OSC somewhere -- well it depends.
+    bool peak()
+    {
+        //is there a peak at this body part?
+//        this tests the peak -- the count is to differentiate it from the last peak
+        bool aPeak = peaks->getCombinedPeak();
+        if( aPeak )
+        {
+            std::cout << whichBodyPart << " peak:" << count << std::endl ;
+            count++;
+        }
+        return aPeak;
+    }
+    
+    void setPeakThresh(float x, float y, float z)
+    {
+        peaks->setThreshes(x, y, z);
+    }
+    
+    //to decrease just use negative values or to only change 1 zero out the others. easy peasy dudes.
+    void increasePeakThresh(float xAmt, float yAmt, float zAmt)
+    {
+        peaks->increaseXThresh(xAmt);
+        peaks->increaseYThresh(yAmt);
+        peaks->increaseZThresh(zAmt);
+        
+        peaks->printThreshes();
+    }
     
     //update all the ugens we own. all of them that need updating..
     virtual void update(float seconds = 0)
@@ -175,20 +245,60 @@ public:
             figureMeasures.push_back(new ArmHeight(figure));
 
         }
+        bool bodyPartExists(std::string whichPart)
+        {
+            return bodyPartIndex(whichPart)!=-1;
+        }
+        
+        int bodyPartIndex(std::string whichPart)
+        {
+            int i=0;
+            bool found = false;
+            while (i < bodyParts.size() && !found)
+            {
+                found = !whichPart.compare(bodyParts[i]->getWhichBodyPart());
+                i++;
+            }
+            if(found)
+                return i-1;
+            else return -1;
+        }
+        
         void addBodyPart(BodyPartSensor *part)
         {
 //            for(NotchBoneFigureVisualizer *f: figure)
 //                f->setInputSignal(part->getWhichBodyPart(), part->getAvgSignal());
             
             figure->setInputSignal(part->getWhichBodyPart(), part->getAvgSignal());
+            part->setBoneID(figure->getBoneID(part->getWhichBodyPart()));
             bodyParts.push_back(part);
+        }
+        
+        //this is maybe toooo much
+        BodyPartSensor *getPartWithID(int id_)
+        {
+            return bodyParts[bodyPartIndex(getBoneName(id_))];
+        }
+        
+        std::string getBoneName(int id_)
+        {
+            return figure->getBoneName(id_);
         }
         
         //update all the ugens we own. all of them that need updating..
         virtual void update(float seconds = 0)
         {
-            for(int i=0; i<bodyParts.size(); i++)
+            for(int i=0; i<bodyParts.size(); i++){
                 bodyParts[i]->update(seconds);
+                
+                //only test hands for now
+//                if( !bodyParts[i]->getWhichBodyPart().compare("LeftHand") ||
+//                    !bodyParts[i]->getWhichBodyPart().compare("RightHand"))
+//                {
+//                    bodyParts[i]->peak(); //just print the peaks for noaw
+//                }
+                
+            }
             
 //            for(NotchBoneFigureVisualizer *f: figure)
 //                f->update(seconds);
@@ -196,9 +306,29 @@ public:
             
             for(int i=0; i<figureMeasures.size(); i++)
                 figureMeasures[i]->update(seconds);
-            
-            
         };
+        
+        void adjustPeakThreshes(std::string boneName, float xAmt, float yAmt, float zAmt )
+        {
+            int index = bodyPartIndex(boneName);
+            if(index==-1)
+            {
+                std::cout << "AdjustPeakThreshes function error: " << boneName << "not found!!!!!!\n";
+                return;
+            }
+            BodyPartSensor *part = bodyParts[index];
+            part->increasePeakThresh(  xAmt,  yAmt,  zAmt );
+        }
+        
+        void increasePeakThresh(std::string boneName, float amt=0.0001)
+        {
+            adjustPeakThreshes(boneName, amt, amt, amt);
+        }
+        
+        void decreasePeakThresh(std::string boneName, float amt=0.0001)
+        {
+            adjustPeakThreshes(boneName, -amt, -amt, -amt);
+        }
         
         //collect all the OSC messages and send them to calling class
         virtual std::vector<ci::osc::Message> getOSC()
@@ -210,6 +340,14 @@ public:
             for (int i=0; i<bodyParts.size(); i++)
             {
                 nmsgs = bodyParts[i]->getOSC();
+                
+//                //only test hands for now
+//                if( !bodyParts[i]->getWhichBodyPart().compare("LeftHand") ||
+//                   !bodyParts[i]->getWhichBodyPart().compare("RightHand"))
+//                {
+//                    //get melody notes... for the hand only... for now
+//
+//                }
                 
                 for(int j=0; j<nmsgs.size(); j++)
                 {

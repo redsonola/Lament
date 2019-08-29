@@ -20,23 +20,20 @@
 #define SIGAVG_OSCMESSAGE "/CBIS/Average"
 #define CI_OSCMESSAGE "/CBIS/CI" //send contraction index
 #define ARMHEIGHT_OSCMESSAGE "/CBIS/ArmHeight" //send relative arm height index
-
+#define VERTICALITY_OSCMESSAGE "/CBIS/Verticality" //send verticality
 
 #define SEND_TO_WEKINATOR 1
 #define WEK_MESSAGE "/wek/inputs"
 
-
-
-//#include <opencv2/opencv.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/video/tracking.hpp>
-
-//includes for background subtraction
-#include "opencv2/imgproc.hpp"
-#include "opencv2/videoio.hpp"
-#include <opencv2/video.hpp>
-
+//for sending busy spase to max 7
+#define BUSY_SPARSE_PERCUSSION "/InteractiveTango/BusySparse/Beats"
+#define BUSY_SPARSE_DANCERS "/InteractiveTango/BusySparse/Dancers"
+#define EXPMUSIC_HARMONY "/InteractiveTango/Experimental/Harmony"
+#define EXPMUSIC_INTROFILL "/InteractiveTango/Experimental/HarmonyIntroFill"
+#define EXPMUSIC_CLOSEFILL "/InteractiveTango/Experimental/HarmonyCloseFill"
+#define EXPMUSIC_MELODY_INSTRUMENT "/InteractiveTango/Experimental/Melody/Instrument"
+#define EXPMUSIC_ACCOMP_INSTRUMENT "/InteractiveTango/Experimental/Accompaniment/Instrument"
+#define EXPMUSIC_SECTION "/InteractiveTango/Experimental/Section"
 
 #include "cinder/app/App.h"
 #include "cinder/app/RendererGl.h"
@@ -48,15 +45,32 @@
 #include <math.h>
 #include <algorithm>
 
-
-#include "CinderOpenCV.h"
-
 #include "Osc.h"
 
+#include "Containers.h"
+#include "BeatTiming.h"
 #include "MotionCaptureData.h"
 #include "Sensor.h"
+#include "MotionAnalysisOuput.h"
 #include "UGENs.h"
+
+
+#include "PerceptualMappingScheme.h"
+#include "PerceptualSchemas.h"
+
+#include "Instruments.h"
+#include "MidiUtility.h"
+//#include "MusicPlayer.h"
+//#include "ChordGeneration.h"
+#include "MelodyGeneratorAlgorithm.h"
+#include "MelodyGenerator.h"
 #include "PeakDetection.h"
+
+//#include "ExperimentalMusicPlayer.h"
+
+#include "FactorOracle.h"
+
+
 #include "MeasuredEntities.h"
 #include "SaveOSC.h"
 
@@ -66,9 +80,6 @@
 #define DESTPORT 8888
 #define WEKPORT 6448
 #define LOCALPORT3 8889
-
-
-
 
 #define MAX_NUM_OF_WIIMOTES 6 //limitation of bluetooth class 2
 #define PHONE_ID "7" //this assumes only one phone using Syntien or some such -- can modify if you have more...
@@ -115,7 +126,11 @@ protected:
     void initCamera();
     MouseEvent mLastMouseEvent;
     bool mShiftKeyDown;
-
+    
+    bool mChangePeakThresholdMode;
+    CRCPMotionAnalysis::BodyPartSensor::BodyPart mWhichThresh;
+    
+    void printKeyboardMenu();
 
     void sendOSC(std::string addr, float value);
     
@@ -129,11 +144,13 @@ protected:
     void updatePhoneValues(const osc::Message &message);
     void updateWiiValues(const osc::Message &message);
     void updateNotchValues(const osc::Message &message);
-    void createNotchMotionData(std::string _id, std::vector<float> vals);
+    void createNotchMotionData(std::string _id, std::string who, std::string sendingDevice, std::vector<float> vals);
+    void printSensors();
+
     void printNotchValues(const osc::Message &message);
     void addPhoneAndWiiData(const osc::Message &message, std::string _id);
     
-    CRCPMotionAnalysis::SensorData *getSensor( std::string _id, int which, CRCPMotionAnalysis::MocapDeviceData::MocapDevice device ); // find sensor or wiimote in list via id
+    CRCPMotionAnalysis::SensorData *getSensor( std::string _id, int which, CRCPMotionAnalysis::MocapDeviceData::MocapDevice device, CRCPMotionAnalysis::MocapDeviceData::SendingDevice sdevice); // find sensor or wiimote in list via id
     std::vector<CRCPMotionAnalysis::SensorData *> mSensors; //all the sensors which have sent us OSC -- well only wiimotes so far
     std::vector<CRCPMotionAnalysis::BodyPartSensor *> mBodyParts;  //who are we measuring? change name when specifics are known.
     std::vector<CRCPMotionAnalysis::Entity *> mPeople;
@@ -182,7 +199,7 @@ void FeverRhythmCycleMain::addPhoneAndWiiData(const osc::Message &message, std::
     }
 
     
-    CRCPMotionAnalysis::SensorData *sensor = getSensor( _id, which, sensorData->getDeviceType() );
+    CRCPMotionAnalysis::SensorData *sensor = getSensor( _id, which, sensorData->getDeviceType(), CRCPMotionAnalysis::MocapDeviceData::SendingDevice::UNSPECIFIED );
     
     //set time stamp
     sensorData->setData( CRCPMotionAnalysis::MocapDeviceData::DataIndices::TIME_STAMP, seconds ); //set timestamp from program -- synch with call to update()
@@ -195,42 +212,85 @@ void FeverRhythmCycleMain::addPhoneAndWiiData(const osc::Message &message, std::
 }
 
 //return sensor with id & or create one w/detected id then return that one
-CRCPMotionAnalysis::SensorData *FeverRhythmCycleMain::getSensor( std::string _id, int which, CRCPMotionAnalysis::MocapDeviceData::MocapDevice device )
+CRCPMotionAnalysis::SensorData *FeverRhythmCycleMain::getSensor( std::string _id, int which, CRCPMotionAnalysis::MocapDeviceData::MocapDevice device, CRCPMotionAnalysis::MocapDeviceData::SendingDevice sDevice )
 {
     
     bool found = false;
     int index = 0;
     
+//    printSensors();
+    
     while( !found && index < mSensors.size() )
     {
-        found = mSensors[index]->same( _id, which );
+        found = mSensors[index]->same( _id, which, sDevice );
         index++;
     }
     
     if(found)
     {
+//        if(!_id.compare("ChestBottom")){
+//            std::cout << mSensors[index-1]->getDeviceID() << "==" << _id << "    " ;
+//            std::cout << mSensors[index-1]->getSendingDeviceString() << "==" ;
+//            if (sDevice == CRCPMotionAnalysis::MocapDeviceData::SendingDevice::ANDROID)
+//                std::cout << "Android\n";
+//            else std::cout << "iOS\n";
+//        }
         return mSensors[index-1];
     }
     else
     {
-        CRCPMotionAnalysis::SensorData *sensor = new CRCPMotionAnalysis::SensorData( _id, which, device );
-        mSensors.push_back(sensor);
-            
-        //add to 'body part' the data structure which can combine sensors. It currently only has one body part so it is simple.
-        int bodyPartID  = mSensors.size()-1;
-        CRCPMotionAnalysis::BodyPartSensor *bodyPart = new CRCPMotionAnalysis::BodyPartSensor();
-        bodyPart->addSensor(bodyPartID, sensor);  //note that this should change if using bones, etc.
-        mBodyParts.push_back(bodyPart);
+        CRCPMotionAnalysis::SensorData *sensor = new CRCPMotionAnalysis::SensorData( _id, which, device, sDevice );
         
-        //TODO: ok, handle multiple entities later
+        mSensors.push_back(sensor);
+        
+        //TODO: ok, handle multiple entities later -- (use the "who" id in the OSC message)
         if(mPeople.size() <= 0)
         {
             mPeople.push_back(new CRCPMotionAnalysis::Entity());
         }
+        
+        //okay now test if this body part already exists in the person
+        //this is bc do not want to use different sensors from the same bodypart (eg. chest) which
+        // bc it is a root bone will need to be duplicated across phones
+        //ergo this info will be discarded...
+        if(mPeople[0]->bodyPartExists(sensor->getDeviceID()))  //yip for now.
+        {
+            std::cout << "Note that " << sensor->getDeviceID() << " exists already. Not using data from device ";
+            if (sDevice == CRCPMotionAnalysis::MocapDeviceData::SendingDevice::ANDROID)
+                std::cout << "Android\n";
+            else std::cout << "iOS\n";
+            
+            return sensor;
+        }
+        
+            
+        //add to 'body part' the data structure which can combine sensors. It currently only has one body part so it is simple.
+        
+        //TODO: check the UGEN / averaging sensor ID
+        int bodyPartID  = mSensors.size()-1;
+        CRCPMotionAnalysis::BodyPartSensor *bodyPart = new CRCPMotionAnalysis::BodyPartSensor();
+        bodyPart->addSensor(bodyPartID, sensor, sDevice);  //note that this should change if using bones, etc.
+        mBodyParts.push_back(bodyPart);
+        
         mPeople[0]->addBodyPart(bodyPart);
         
         return sensor;
     }
+}
+
+void FeverRhythmCycleMain::printSensors()
+{
+    std::cout << "-------- SensorList: \n";
+
+    for (CRCPMotionAnalysis::SensorData *sensor : mSensors)
+    {
+        if(sensor != NULL)
+        {
+            std::cout << "Bone: " << sensor->getDeviceID() ;
+            std::cout << " Sending Device: " << sensor->getSendingDeviceString() << std::endl ;
+        }
+    }
+    
 }
 
 //finds the id of the wiimote then adds the wiidata to ugens
@@ -297,6 +357,8 @@ void FeverRhythmCycleMain::updateNotchValues(const osc::Message &message)
      ***/
     
     std::string bone = "";
+    std::string sendingDevice = "";
+    std::string sender="";
     osc::Message wekMsg;
     
 //    std::cout << message << std::endl;
@@ -439,8 +501,12 @@ address: /Notch/BonePosAndAccel
         wekMsg.setAddress(WEK_MESSAGE);
     }
     
+//    std::cout << message << std::endl;
+    
+    sendingDevice = message.getArgString(1);
+    sender = message.getArgString(0);
 
-    for ( int i=1; i<message.getNumArgs(); i++)
+    for ( int i=3; i<message.getNumArgs(); i++)
     {
         ci::osc::ArgType type_ = message.getArgType(i);
         
@@ -468,7 +534,7 @@ address: /Notch/BonePosAndAccel
             const int NUMBER_OFVALUES_NEEDED_TOBE_LIVE = 6; //just sayin'
             if(values.size() >= NUMBER_OFVALUES_NEEDED_TOBE_LIVE) //this is then, a measured value
             {
-                createNotchMotionData(bone, values);
+                createNotchMotionData(bone, sender, sendingDevice, values);
             }
             
             //if sending to wekinator
@@ -486,16 +552,19 @@ address: /Notch/BonePosAndAccel
         mWekSender.send(wekMsg);
 }
 
-void FeverRhythmCycleMain::createNotchMotionData(std::string _id, std::vector<float> vals)
+void FeverRhythmCycleMain::createNotchMotionData(std::string _id, std::string who, std::string sendingDevice, std::vector<float> vals)
 {
     CRCPMotionAnalysis::MocapDeviceData *sensorData;
     
     sensorData = new CRCPMotionAnalysis::NotchDeviceData();
+    sensorData->setSendingDevice(sendingDevice);
+    
+    //TODO: deal with the "who" value
     
     //hack hack -- change this value to indicate different people -- note: will need to add to OSC coming from phone - so let me know if anyone needs this
     const int notchDataID = 9;
 
-    CRCPMotionAnalysis::SensorData *sensor = getSensor( _id, notchDataID, sensorData->getDeviceType() );
+    CRCPMotionAnalysis::SensorData *sensor = getSensor( _id, notchDataID, sensorData->getDeviceType(), sensorData->getSendingDevice() );
     
     //set time stamp
     sensorData->setData( CRCPMotionAnalysis::MocapDeviceData::DataIndices::TIME_STAMP, seconds ); //set timestamp from program -- synch with call to update()
@@ -509,7 +578,10 @@ void FeverRhythmCycleMain::createNotchMotionData(std::string _id, std::vector<fl
             sensorData->setData(CRCPMotionAnalysis::MocapDeviceData::DataIndices::RELATIVE_TILT+i, vals[i+6]);
             sensorData->setData(CRCPMotionAnalysis::MocapDeviceData::DataIndices::ANGVEL_TILT+i, vals[i+9]);
         }
-        else std::cout << "Using depreciated apps & sensor recordings....\n";
+        else
+        {
+//            std::cout << "Using depreciated apps & sensor recordings....\n";
+        }
     }
     
     sensor->addSensorData(sensorData);
@@ -518,6 +590,11 @@ void FeverRhythmCycleMain::createNotchMotionData(std::string _id, std::vector<fl
 //set up osc
 void FeverRhythmCycleMain::setup()
 {
+    printKeyboardMenu();
+    
+    mChangePeakThresholdMode = false;
+    mWhichThresh = CRCPMotionAnalysis::BodyPartSensor::BodyPart::LEFTHAND;
+    
     initCamera();
     
     try{
@@ -565,6 +642,9 @@ void FeverRhythmCycleMain::setup()
         updateNotchValues(msg);
     });
     
+    mReceiver.setListener( "/testThisShit", [&]( const osc::Message &msg ){
+        std::cout << "This shit works!!\n";
+    });
     try {
         // Bind the receiver to the endpoint. This function may throw.
         mReceiver.bind();
@@ -590,10 +670,60 @@ void FeverRhythmCycleMain::setup()
     
 }
 
+void FeverRhythmCycleMain::printKeyboardMenu()
+{
+    std::cout << "---------------------------------------------------------------------\n";
+    std::cout << "                    Main Menu Instructions\n";
+    std::cout << "---------------------------------------------------------------------\n";
+    std::cout << " 1. Choose a file to save any incoming OSC or else click 'Cancel'  \n";
+    std::cout << " 2. UI Menu:  \n";
+    std::cout << " 'p' - Open a saved OSC file to play the saved stream. Timing is based on running time.  \n";
+    std::cout << " Up & Down Mouse Drag  - Change y eye point in camera  \n";
+    std::cout << " Left & Right Mouse Drag  - Change x eye point in camera \n";
+    std::cout << " Shift key + Left & Right Mouse Drag  - Change z eye point in camera  \n";
+    std::cout << " 'r' - Reset to default camera eyepoint coordinates in camera\n";
+    std::cout << " 't' - Change to peak thresh mode\n";
+    std::cout << " Peak thresh mode - '0'-'7' - Change bone\n";
+    std::cout << " Peak thresh mode - Arrow up & down - adjust thresh\n";
 
+
+
+    std::cout << "---------------------------------------------------------------------\n";
+    std::cout << "---------------------------------------------------------------------\n";
+    std::cout << "\n";
+    std::cout << "\n";
+}
 
 void FeverRhythmCycleMain::keyDown( KeyEvent event )
 {
+    //change peak thresh mode
+    if( mChangePeakThresholdMode)
+    {
+        std::string boneName = mPeople[0]->getBoneName((int) mWhichThresh);
+        if(event.getCode() == KeyEvent::KEY_DOWN)
+        {
+            mPeople[0]->decreasePeakThresh(boneName);
+        }
+        else if (event.getCode() == KeyEvent::KEY_UP)
+        {
+            mPeople[0]->increasePeakThresh(boneName);
+        }
+        else
+        {
+            int num = event.getChar() -'0';
+            if(num > 0 && num <= 7)
+            {
+                mWhichThresh = (CRCPMotionAnalysis::BodyPartSensor::BodyPart) num;
+                boneName = mPeople[0]->getBoneName((int) mWhichThresh);
+                std::cout << "Current Body Part to adjust peak thresh: " << boneName << std::endl;
+                
+            }
+            std::cout << "Command not recognized in Change Peak Thresh Mode\n";
+            
+        }
+    }
+    
+    
     //choose a file to play OSC, if wanted.
     if(event.getChar() == 'p')
     {
@@ -604,6 +734,30 @@ void FeverRhythmCycleMain::keyDown( KeyEvent event )
     {
         std::cout << "Reset to default camera eyepoint coordinates\n";
         mEyePoint = mDefaultEyePoint;
+    }
+    else if(event.getChar() == 't')
+    {
+        if(mPeople.empty())
+        {
+            std::cout << "No skeletons sending data. Cannot enter changing thresh mode./n";
+            return;
+        }
+
+        
+        mChangePeakThresholdMode = !mChangePeakThresholdMode;
+        if(mChangePeakThresholdMode)
+        {
+            std::cout << "Changing to peak threshold mode...\n";
+            std::cout << "Currently changing thresh for " << mPeople[0]->getBoneName( (int) mWhichThresh );
+        }
+        else
+        {
+            std::cout << "Exiting peak threshold mode.\n";
+        }
+        
+
+//        bool mChangePeakThresholdMode;
+//        CRCPMotionAnalysis::BodyPartSensor::BodyPart mWhichThresh;
     }
     mShiftKeyDown = event.isShiftDown();
 }

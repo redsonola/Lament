@@ -18,7 +18,7 @@ namespace CRCPMotionAnalysis {
 class SensorData
 {
 public:
-    SensorData(std::string deviceID, int which, MocapDeviceData::MocapDevice d)
+    SensorData(std::string deviceID, int which, MocapDeviceData::MocapDevice d, MocapDeviceData::SendingDevice sendingDevice)
     {
         setDeviceID(deviceID);
         setWhichSensor(which);
@@ -26,6 +26,7 @@ public:
 //        setPareja(0);
         curNumAdded = 0;
         device = d;
+        mSendingDevice = sendingDevice;
     };
     
     inline int getWhichSensor()
@@ -44,9 +45,9 @@ public:
         mDeviceID = idz;
     };
     
-    bool same( std::string deviceID, int sensor )
+    bool same( std::string deviceID, int sensor,  MocapDeviceData::SendingDevice sendingDevice)
     {
-        return ( !deviceID.compare( mDeviceID ) && sensor == whichSensor );
+        return ( (!deviceID.compare( mDeviceID )) && sensor == whichSensor && mSendingDevice==sendingDevice );
     };
     
     inline void setWhichSensor(int sensor)
@@ -134,11 +135,27 @@ public:
          return device;
      }
     
+    std::string getSendingDeviceString()
+    {
+        //hack hack
+        if(mSendingDevice == MocapDeviceData::SendingDevice::ANDROID)
+        {
+            return "Android";
+        }
+        else if(mSendingDevice == MocapDeviceData::SendingDevice::IOS)
+        {
+            return "iOS";
+        }
+        else return "Unspecified";
+        
+    }
+    
 protected:
     std::vector<MocapDeviceData *> mSensorData;
     std::vector<MocapDeviceData *> mBuffer; //keep a buffer data
     std::string mDeviceID;
     MocapDeviceData::MocapDevice device;
+    MocapDeviceData::SendingDevice mSendingDevice;
     int whichSensor;
     int curNumAdded;
     

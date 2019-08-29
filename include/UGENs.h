@@ -12,7 +12,7 @@
 
 namespace CRCPMotionAnalysis {
     
-    static const double SR = 50; // Sample rate -- this may vary for sensors...
+    static const double SR = 40; // Sample rate -- this may vary for sensors...
     
     
     //abstract class of all ugens
@@ -208,6 +208,46 @@ public:
     };
     
 };
+    
+    //---------------------------------------------------------------------
+    //---------------------------------------------------------------------
+    //Signal Analysis objects that have outcomes which interface with mapping schemeas, etc. etc. -- need to srsly refactor this, as similar to other things, sharing data, but do NOT have time NOW
+    class MotionDataOutput
+    {
+    protected:
+        std::vector<MotionAnalysisData *> motionData;
+    public:
+        MotionDataOutput()
+        {};
+        
+        virtual std::vector<MotionAnalysisData * > getMotionData()
+        {
+            return motionData;
+        }
+        
+        virtual ~MotionDataOutput()
+        {
+            for(int i=0; i<motionData.size(); i++)
+            {
+                if(motionData[i] != NULL)
+                {
+                    delete motionData[i];
+                }
+            }
+        }
+    };
+    
+    
+    class SignalAnalysisEventOutput : public SignalAnalysis, public MotionDataOutput
+    {
+    public:
+        SignalAnalysisEventOutput(SignalAnalysis *s1 = NULL, int bufsize=1024, SignalAnalysis *s2 = NULL)  : SignalAnalysis(s1, bufsize, s2)
+        {
+        };
+        
+    };
+    //---------------------------------------------------------------------
+    //---------------------------------------------------------------------
 
     //has output signals that it modifies  & forwards on to others
     //only handles one stream of data...
@@ -539,6 +579,8 @@ public:
             return msgs;
         };
     };
+    
+    
     
     //this class visualizes incoming motion data
     class MocapDataVisualizer : public SignalAnalysis
@@ -1139,9 +1181,9 @@ public:
         BoneFactory(double bodyStartX=0)
         {
             //hack hack
-            names = {"Root", "Hip", "ChestBottom", "LeftUpperArm", "LeftForeArm", "RightUpperArm", "RightForeArm"};
-            parents = {"", "Root", "Hip", "ChestBottom", "LeftUpperArm", "ChestBottom", "RightUpperArm"};
-            drawDown = {false, false, false, true, true, true, true};
+            names = {"Root", "Hip", "ChestBottom", "LeftUpperArm", "LeftForeArm", "LeftHand", "RightUpperArm", "RightForeArm", "RightHand"};
+            parents = {"", "Root", "Hip", "ChestBottom", "LeftUpperArm", "LeftForeArm", "ChestBottom", "RightUpperArm", "RightForeArm"};
+            drawDown = {false, false, false, true, true, true, true, true, true};
             
             thickness = 5;
             
@@ -1150,7 +1192,7 @@ public:
             double bodyStartY = 0; //start of hip
             
             //okay think about these a bit -- Note: height will be minused from anchor
-            length = {0, h*0.15, h*0.35, h*0.1, h*0.1, h*0.1, h*0.1 };
+            length = {0, h*0.15, h*0.35, h*0.1, h*0.1, h*0.015, h*0.1, h*0.1, h*0.015 };
             
             //ok, hand coded. let's see
             anchorPos.push_back(ci::vec3(bodyStartX, bodyStartY, 0.0)); //root
@@ -1158,8 +1200,11 @@ public:
             anchorPos.push_back(ci::vec3(bodyStartX, anchorPos[1].y-(length[2]*0.75), 0.0)); //chest
             anchorPos.push_back(ci::vec3(bodyStartX, anchorPos[2].y-length[3], 0.0)); //left upper arm
             anchorPos.push_back(ci::vec3(bodyStartX, anchorPos[3].y-length[4], 0.0)); //left fore arm
+            anchorPos.push_back(ci::vec3(bodyStartX, anchorPos[4].y-length[5], 0.0)); //left hand
             anchorPos.push_back(ci::vec3(bodyStartX, anchorPos[2].y-length[3], 0.0)); //right upper arm
             anchorPos.push_back(ci::vec3(bodyStartX, anchorPos[3].y-length[4], 0.0)); //right fore arm
+            anchorPos.push_back(ci::vec3(bodyStartX, anchorPos[4].y-length[5], 0.0)); //right fore arm
+
             
         };
         
@@ -1198,7 +1243,9 @@ public:
         {
             auto iter = std::find(names.begin(), names.end(), name_);
             int index = iter - names.begin();
-            return index;
+            
+            if(index > names.size()-1) return -1;
+            else return index;
         };
         
         
@@ -1237,8 +1284,7 @@ public:
         
         MocapDataVisualizerNotchFigure3DBone *getBone(std::string name_)
         {
-            int index = factory.getBoneIndex(name_);
-            return getBone(index);
+            return getBone(getBoneID(name_));
         };
         
         MocapDataVisualizerNotchFigure3DBone *getBone(int index)
@@ -1251,6 +1297,16 @@ public:
         int getBoneCount()
         {
             return factory.getBoneCount();
+        }
+        
+        int getBoneID(std::string name_)
+        {
+            return factory.getBoneIndex(name_);
+        }
+        
+        std::string getBoneName(int index)
+        {
+            return factory.getName(index); 
         }
 
         void setInputSignal(std::string name, OutputSignalAnalysis *s1)
@@ -1327,6 +1383,8 @@ public:
     
     //Doesn't really work for bending yet...
     //idea -- create a cone instead of a cylinder that gets larger or smaller... ?! or a frustrum?
+    
+    //need to recalibrate for hands... both this and arm measure...
     class ContractionIndex : public FigureMeasure
     {
     protected:
@@ -1353,7 +1411,15 @@ public:
             ci::vec3 leftP = findMostLeftPoint();
             
             //find furthest point from this left pt -- lets say its right altho could be z direction
-            ci::vec3 rightP = findFarestPointFrom(leftP);
+            ci::vec3 xP = findFarestPointFromX(leftP);
+            ci::vec3 zP = findFarestPointFromZ(leftP);
+            ci::vec3 rightP;
+            if(std::abs(leftP.x-xP.x) > std::abs(leftP.z-zP.z))
+            {
+                rightP = xP;
+            }
+            else rightP = zP;
+
 
             //find the distance btw left & right
              mRadius = ci::distance(ci::vec2(leftP.x,leftP.z) , ci::vec2(rightP.x,rightP.z));
@@ -1371,13 +1437,13 @@ public:
 //            mSumDistanceFromRoot = scaleSummedDistance();
             
             //let's look at the values
-//            std::cout << "update: volume: " << mVolume << "  height:" << mHeight << " radius:" << mRadius <<  " SumDistanceFromRoot:" << mSumDistanceFromRoot << std::endl;
+//            std::cout << "update: volume: " << mVolume << "  height:" << mHeight << " radius:" << mRadius << std::endl;
         }
         
         //hack hack hack -- quick and dirty - bypassing my motiondata class... yikes
         float scaleVolume()
         {
-            const float MAX_RECORDED_VOLUME_EST = 650;
+            const float MAX_RECORDED_VOLUME_EST = 700; //real max is 750 but this works better
             const float MIN_RECORDED_VOLUME_EST = 10;
             return scaledValue0to1(mVolume,MIN_RECORDED_VOLUME_EST, MAX_RECORDED_VOLUME_EST );
         }
@@ -1471,24 +1537,39 @@ public:
             return pt;
         }
         
-        ci::vec3 findFarestPointFrom(ci::vec3 farestPt)
+        ci::vec3 findFarestPointFromX(ci::vec3 farestPt)
         {
             //NOTE: I know that Root is the 1st bone, so I'm skipping
             //Also, this will be the point that is furthest away in the x-axis -- may add z later?
             
             
-            ci::vec2 fPt2(farestPt.x, farestPt.z);
+            ci::vec3 pt = figure->getBone(1)->getCurEndPoint();
+            
+            for(int i=2; i<figure->getBoneCount(); i++)
+            {
+                ci::vec3 endingPoint = figure->getBone(i)->getCurEndPoint();
+                
+                if(std::abs(endingPoint.x-farestPt.x) >  std::abs(pt.x-farestPt.x))
+                    pt = endingPoint;
+            }
+            
+            return pt;
+        }
+        
+        ci::vec3 findFarestPointFromZ(ci::vec3 farestPt)
+        {
+            //NOTE: I know that Root is the 1st bone, so I'm skipping
+            //Also, this will be the point that is furthest away in the x-axis -- may add z later?
+            
             
             ci::vec3 pt = figure->getBone(1)->getCurEndPoint();
             
             for(int i=2; i<figure->getBoneCount(); i++)
             {
-                ci::vec3 endingPoint3 = figure->getBone(i)->getCurEndPoint();
-                ci::vec2 endingPt(endingPoint3.x, endingPoint3.z);
-                ci::vec2 pt2(pt.x, pt.z);
+                ci::vec3 endingPoint = figure->getBone(i)->getCurEndPoint();
                 
-                if(ci::distance(pt2, fPt2) <  ci::distance(endingPt, fPt2))
-                    pt = endingPoint3;
+                if(std::abs(endingPoint.z-farestPt.z) >  std::abs(pt.z-farestPt.z))
+                    pt = endingPoint;
             }
             
             return pt;
@@ -1556,7 +1637,7 @@ public:
             mRightArmHeight = scaledValue0to1(mRightArmHeight, MIN_RECORDED_RIGHTARM_HEIGHT_EST, MAX_RECORDED_RIGHTARM_HEIGHT_EST);
             mLeftArmHeight = scaledValue0to1(mLeftArmHeight, MIN_RECORDED_LEFTARM_HEIGHT_EST, MAX_RECORDED_LEFTARM_HEIGHT_EST);
             
-            std::cout << "mArmHeight:" << mArmHeight << " mLeftArmHeight: " << mLeftArmHeight << " mRightArmHeight:" << mRightArmHeight << std::endl;
+//            std::cout << "mArmHeight:" << mArmHeight << " mLeftArmHeight: " << mLeftArmHeight << " mRightArmHeight:" << mRightArmHeight << std::endl;
         }
         
         float armDistanceFromHipinY(std::string whichArm)
@@ -1579,6 +1660,47 @@ public:
             msg.append(mLeftArmHeight);
             msg.append(mRightArmHeight);
 
+            msgs.push_back(msg);
+            
+            return msgs;
+        }
+        
+    };
+    
+    //wait.
+    class Verticality : public FigureMeasure
+    {
+    protected:
+        float mVerticality;
+    public:
+        Verticality(NotchBoneFigure *figure_, int bufnum=48) : FigureMeasure(figure_, bufnum)
+        {
+        }
+        
+        //TODO: calibrate these values -- also the CI
+        virtual void update(float seconds = 0)
+        {
+
+        }
+        
+        float armDistanceFromHipinY(std::string whichArm)
+        {
+            ci::vec3 pt = figure->getBone("Hip")->getAnchorPos();
+            ci::vec3 pt2 =  figure->getBone(whichArm+"UpperArm")->getAnchorPos();
+            ci::vec3 pt3 =  figure->getBone(whichArm+"ForeArm")->getAnchorPos();
+            
+            return (pt2.y-pt.y) + (pt3.y-pt.y);
+            
+        }
+        
+        std::vector<ci::osc::Message> getOSC()
+        {
+            std::vector<ci::osc::Message> msgs;
+            
+            ci::osc::Message msg;
+            msg.setAddress(VERTICALITY_OSCMESSAGE);
+            msg.append(mVerticality);
+            
             msgs.push_back(msg);
             
             return msgs;

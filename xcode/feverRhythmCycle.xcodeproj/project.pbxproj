@@ -22,6 +22,24 @@
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
 		BCA0F153EE9A4611ADBC5AFB /* CinderApp.icns in Resources */ = {isa = PBXBuildFile; fileRef = BFCC0788C77649EDAAB9C8A2 /* CinderApp.icns */; };
 		F12714652140C1BC006BFD00 /* BlackDot.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = F12714642140C1BC006BFD00 /* BlackDot.mp4 */; };
+		F136CB0323020A2100617000 /* midi_input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F136CAF423020A2000617000 /* midi_input.cpp */; };
+		F136CB0423020A2100617000 /* midi_utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F136CAF623020A2000617000 /* midi_utils.cpp */; };
+		F136CB0523020A2100617000 /* midi_file_reader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F136CAF823020A2000617000 /* midi_file_reader.cpp */; };
+		F136CB0623020A2100617000 /* music_theory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F136CAFC23020A2100617000 /* music_theory.cpp */; };
+		F136CB0723020A2100617000 /* midi_file_writer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F136CAFF23020A2100617000 /* midi_file_writer.cpp */; };
+		F136CB0823020A2100617000 /* midi_output.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F136CB0123020A2100617000 /* midi_output.cpp */; };
+		F136CB0923020A2100617000 /* port_manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F136CB0223020A2100617000 /* port_manager.cpp */; };
+		F136E90323034A1E00C445BD /* rtmidi.pc.in in Resources */ = {isa = PBXBuildFile; fileRef = F136E8FD23034A1E00C445BD /* rtmidi.pc.in */; };
+		F136E90423034A1E00C445BD /* MidiFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F136E8FE23034A1E00C445BD /* MidiFile.cpp */; };
+		F136E90523034A1E00C445BD /* rtmidi-config.in in Resources */ = {isa = PBXBuildFile; fileRef = F136E90023034A1E00C445BD /* rtmidi-config.in */; };
+		F136E90623034A1E00C445BD /* RtMidi.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F136E90123034A1E00C445BD /* RtMidi.cpp */; };
+		F136E90723034A1E00C445BD /* rtmidi_c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F136E90223034A1E00C445BD /* rtmidi_c.cpp */; };
+		F136E93A2303508300C445BD /* CoreMIDI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F136E9392303504300C445BD /* CoreMIDI.framework */; };
+		F136E959230352AA00C445BD /* MidiEvent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F136E94E230352A800C445BD /* MidiEvent.cpp */; };
+		F136E95A230352AA00C445BD /* Binasc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F136E952230352A900C445BD /* Binasc.cpp */; };
+		F136E95B230352AA00C445BD /* MidiMessage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F136E954230352A900C445BD /* MidiMessage.cpp */; };
+		F136E95C230352AA00C445BD /* Options.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F136E955230352A900C445BD /* Options.cpp */; };
+		F136E95D230352AA00C445BD /* MidiEventList.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F136E958230352A900C445BD /* MidiEventList.cpp */; };
 		F1E58EE1212B7788000AB79C /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1E58EE0212B7788000AB79C /* OpenCL.framework */; };
 /* End PBXBuildFile section */
 
@@ -51,11 +69,66 @@
 		F125638A219930AA0032E0E9 /* SaveOSC.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SaveOSC.h; sourceTree = "<group>"; };
 		F125638B2199DA3E0032E0E9 /* ReadCSV.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ReadCSV.h; sourceTree = "<group>"; };
 		F12714642140C1BC006BFD00 /* BlackDot.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = BlackDot.mp4; sourceTree = "<group>"; };
+		F136CAF323020A2000617000 /* music_theory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = music_theory.h; path = ../../MagneticGardel/xcode/music_theory.h; sourceTree = "<group>"; };
+		F136CAF423020A2000617000 /* midi_input.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = midi_input.cpp; path = ../../MagneticGardel/xcode/midi_input.cpp; sourceTree = "<group>"; };
+		F136CAF523020A2000617000 /* timer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = timer.h; path = ../../MagneticGardel/xcode/timer.h; sourceTree = "<group>"; };
+		F136CAF623020A2000617000 /* midi_utils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = midi_utils.cpp; path = ../../MagneticGardel/xcode/midi_utils.cpp; sourceTree = "<group>"; };
+		F136CAF723020A2000617000 /* midi_output.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = midi_output.h; path = ../../MagneticGardel/xcode/midi_output.h; sourceTree = "<group>"; };
+		F136CAF823020A2000617000 /* midi_file_reader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = midi_file_reader.cpp; path = ../../MagneticGardel/xcode/midi_file_reader.cpp; sourceTree = "<group>"; };
+		F136CAF923020A2000617000 /* midi_file_writer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = midi_file_writer.h; path = ../../MagneticGardel/xcode/midi_file_writer.h; sourceTree = "<group>"; };
+		F136CAFA23020A2000617000 /* concurrent_queue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = concurrent_queue.h; path = ../../MagneticGardel/xcode/concurrent_queue.h; sourceTree = "<group>"; };
+		F136CAFC23020A2100617000 /* music_theory.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = music_theory.cpp; path = ../../MagneticGardel/xcode/music_theory.cpp; sourceTree = "<group>"; };
+		F136CAFD23020A2100617000 /* midi_input.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = midi_input.h; path = ../../MagneticGardel/xcode/midi_input.h; sourceTree = "<group>"; };
+		F136CAFE23020A2100617000 /* midi_file_reader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = midi_file_reader.h; path = ../../MagneticGardel/xcode/midi_file_reader.h; sourceTree = "<group>"; };
+		F136CAFF23020A2100617000 /* midi_file_writer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = midi_file_writer.cpp; path = ../../MagneticGardel/xcode/midi_file_writer.cpp; sourceTree = "<group>"; };
+		F136CB0023020A2100617000 /* port_manager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = port_manager.h; path = ../../MagneticGardel/xcode/port_manager.h; sourceTree = "<group>"; };
+		F136CB0123020A2100617000 /* midi_output.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = midi_output.cpp; path = ../../MagneticGardel/xcode/midi_output.cpp; sourceTree = "<group>"; };
+		F136CB0223020A2100617000 /* port_manager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = port_manager.cpp; path = ../../MagneticGardel/xcode/port_manager.cpp; sourceTree = "<group>"; };
+		F136CB0A23020BED00617000 /* RtMidi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RtMidi.h; path = ../../MagneticGardel/xcode/include/RtMidi.h; sourceTree = "<group>"; };
+		F136CB0C23020DAA00617000 /* MidiFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MidiFile.h; path = ../../MagneticGardel/xcode/include/MidiFile.h; sourceTree = "<group>"; };
+		F136CB0E23020DF600617000 /* modernmidi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = modernmidi.h; path = ../../MagneticGardel/xcode/modernmidi.h; sourceTree = "<group>"; };
+		F136CB1023020E1500617000 /* midi_event.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = midi_event.h; path = ../../MagneticGardel/xcode/midi_event.h; sourceTree = "<group>"; };
+		F136CB1123020E1500617000 /* midi_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = midi_utils.h; path = ../../MagneticGardel/xcode/midi_utils.h; sourceTree = "<group>"; };
+		F136CB1223020E1500617000 /* midi_message.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = midi_message.h; path = ../../MagneticGardel/xcode/midi_message.h; sourceTree = "<group>"; };
+		F136CB1723020F5F00617000 /* ChordGeneration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ChordGeneration.h; path = ../../MagneticGardel/xcode/ChordGeneration.h; sourceTree = "<group>"; };
+		F136CB182302103300617000 /* MotionAnalysisParameterRanges.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MotionAnalysisParameterRanges.h; path = ../../MagneticGardel/xcode/MotionAnalysisParameterRanges.h; sourceTree = "<group>"; };
+		F136CB1E2302166E00617000 /* PerceptualSchemas.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PerceptualSchemas.h; sourceTree = "<group>"; };
+		F136CB1F2302166E00617000 /* MappingSchemaEventInContinuousOut.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MappingSchemaEventInContinuousOut.h; sourceTree = "<group>"; };
+		F136CB202302166E00617000 /* PerceptualMappingScheme.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PerceptualMappingScheme.h; sourceTree = "<group>"; };
+		F136CB21230216E000617000 /* Containers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Containers.h; sourceTree = "<group>"; };
+		F136CB22230217E000617000 /* MotionAnalysisOuput.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MotionAnalysisOuput.h; sourceTree = "<group>"; };
+		F136CB232302184A00617000 /* MelodyGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MelodyGenerator.h; sourceTree = "<group>"; };
+		F136CB242302184A00617000 /* MelodyGeneratorAlgorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MelodyGeneratorAlgorithm.h; sourceTree = "<group>"; };
+		F136CB252302187400617000 /* MIDIUtility.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MIDIUtility.h; sourceTree = "<group>"; };
+		F136CB262302194900617000 /* BeatTiming.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BeatTiming.h; sourceTree = "<group>"; };
+		F136CB27230219CF00617000 /* FactorOracle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FactorOracle.h; sourceTree = "<group>"; };
+		F136CB282302203E00617000 /* ExperimentalMusicPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ExperimentalMusicPlayer.h; sourceTree = "<group>"; };
+		F136CB292302203F00617000 /* MusicPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MusicPlayer.h; sourceTree = "<group>"; };
+		F136CB2A230220EE00617000 /* Instruments.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Instruments.h; sourceTree = "<group>"; };
+		F136E8FB2303423F00C445BD /* sequence_player.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sequence_player.h; sourceTree = "<group>"; };
+		F136E8FC2303470000C445BD /* ChordGeneration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ChordGeneration.h; sourceTree = "<group>"; };
+		F136E8FD23034A1E00C445BD /* rtmidi.pc.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = rtmidi.pc.in; sourceTree = "<group>"; };
+		F136E8FE23034A1E00C445BD /* MidiFile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MidiFile.cpp; sourceTree = "<group>"; };
+		F136E8FF23034A1E00C445BD /* rtmidi_c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rtmidi_c.h; sourceTree = "<group>"; };
+		F136E90023034A1E00C445BD /* rtmidi-config.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = "rtmidi-config.in"; sourceTree = "<group>"; };
+		F136E90123034A1E00C445BD /* RtMidi.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RtMidi.cpp; sourceTree = "<group>"; };
+		F136E90223034A1E00C445BD /* rtmidi_c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = rtmidi_c.cpp; sourceTree = "<group>"; };
+		F136E9392303504300C445BD /* CoreMIDI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMIDI.framework; path = System/Library/Frameworks/CoreMIDI.framework; sourceTree = SDKROOT; };
+		F136E94E230352A800C445BD /* MidiEvent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MidiEvent.cpp; sourceTree = "<group>"; };
+		F136E94F230352A800C445BD /* MidiMessage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MidiMessage.h; sourceTree = "<group>"; };
+		F136E950230352A800C445BD /* Binasc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Binasc.h; sourceTree = "<group>"; };
+		F136E951230352A900C445BD /* MidiEvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MidiEvent.h; sourceTree = "<group>"; };
+		F136E952230352A900C445BD /* Binasc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Binasc.cpp; sourceTree = "<group>"; };
+		F136E953230352A900C445BD /* MidiFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MidiFile.h; sourceTree = "<group>"; };
+		F136E954230352A900C445BD /* MidiMessage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MidiMessage.cpp; sourceTree = "<group>"; };
+		F136E955230352A900C445BD /* Options.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Options.cpp; sourceTree = "<group>"; };
+		F136E956230352A900C445BD /* Options.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Options.h; sourceTree = "<group>"; };
+		F136E957230352A900C445BD /* MidiEventList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MidiEventList.h; sourceTree = "<group>"; };
+		F136E958230352A900C445BD /* MidiEventList.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MidiEventList.cpp; sourceTree = "<group>"; };
 		F15A1BD7217E544B00F34B3C /* UGENs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UGENs.h; path = ../include/UGENs.h; sourceTree = "<group>"; };
 		F15A1BD8217E558B00F34B3C /* MotionCaptureData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MotionCaptureData.h; path = ../include/MotionCaptureData.h; sourceTree = "<group>"; };
 		F15A1BD9217E614B00F34B3C /* Sensor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Sensor.h; path = ../include/Sensor.h; sourceTree = "<group>"; };
 		F1609500218B803A00F7DE45 /* PeakDetection.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PeakDetection.h; path = ../include/PeakDetection.h; sourceTree = "<group>"; };
-		F1E58EDF212B434B000AB79C /* CinderOpenCV.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CinderOpenCV.h; path = ../include/CinderOpenCV.h; sourceTree = "<group>"; };
 		F1E58EE0212B7788000AB79C /* OpenCL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = OpenCL.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -64,6 +137,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F136E93A2303508300C445BD /* CoreMIDI.framework in Frameworks */,
 				006D720419952D00008149E2 /* AVFoundation.framework in Frameworks */,
 				006D720519952D00008149E2 /* CoreMedia.framework in Frameworks */,
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
@@ -93,6 +167,12 @@
 		080E96DDFE201D6D7F000001 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				F136E8FE23034A1E00C445BD /* MidiFile.cpp */,
+				F136E90223034A1E00C445BD /* rtmidi_c.cpp */,
+				F136E8FF23034A1E00C445BD /* rtmidi_c.h */,
+				F136E90023034A1E00C445BD /* rtmidi-config.in */,
+				F136E90123034A1E00C445BD /* RtMidi.cpp */,
+				F136E8FD23034A1E00C445BD /* rtmidi.pc.in */,
 				4502019EE62D43FEA18F5E6E /* feverRhythmCycleMain.cpp */,
 			);
 			name = Source;
@@ -101,6 +181,7 @@
 		1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				F136E9392303504300C445BD /* CoreMIDI.framework */,
 				F1E58EE0212B7788000AB79C /* OpenCL.framework */,
 				006D720219952D00008149E2 /* AVFoundation.framework */,
 				006D720319952D00008149E2 /* CoreMedia.framework */,
@@ -137,7 +218,6 @@
 		29B97314FDCFA39411CA2CEA /* MyNewProjectYay */ = {
 			isa = PBXGroup;
 			children = (
-				F1E58EDF212B434B000AB79C /* CinderOpenCV.h */,
 				01B97315FEAEA392516A2CEA /* Blocks */,
 				29B97315FDCFA39411CA2CEA /* Headers */,
 				080E96DDFE201D6D7F000001 /* Source */,
@@ -151,6 +231,55 @@
 		29B97315FDCFA39411CA2CEA /* Headers */ = {
 			isa = PBXGroup;
 			children = (
+				F136E952230352A900C445BD /* Binasc.cpp */,
+				F136E950230352A800C445BD /* Binasc.h */,
+				F136E94E230352A800C445BD /* MidiEvent.cpp */,
+				F136E951230352A900C445BD /* MidiEvent.h */,
+				F136E958230352A900C445BD /* MidiEventList.cpp */,
+				F136E957230352A900C445BD /* MidiEventList.h */,
+				F136E953230352A900C445BD /* MidiFile.h */,
+				F136E954230352A900C445BD /* MidiMessage.cpp */,
+				F136E94F230352A800C445BD /* MidiMessage.h */,
+				F136E955230352A900C445BD /* Options.cpp */,
+				F136E956230352A900C445BD /* Options.h */,
+				F136E8FC2303470000C445BD /* ChordGeneration.h */,
+				F136E8FB2303423F00C445BD /* sequence_player.h */,
+				F136CB2A230220EE00617000 /* Instruments.h */,
+				F136CB282302203E00617000 /* ExperimentalMusicPlayer.h */,
+				F136CB292302203F00617000 /* MusicPlayer.h */,
+				F136CB27230219CF00617000 /* FactorOracle.h */,
+				F136CB262302194900617000 /* BeatTiming.h */,
+				F136CB252302187400617000 /* MIDIUtility.h */,
+				F136CB232302184A00617000 /* MelodyGenerator.h */,
+				F136CB242302184A00617000 /* MelodyGeneratorAlgorithm.h */,
+				F136CB22230217E000617000 /* MotionAnalysisOuput.h */,
+				F136CB21230216E000617000 /* Containers.h */,
+				F136CB1F2302166E00617000 /* MappingSchemaEventInContinuousOut.h */,
+				F136CB202302166E00617000 /* PerceptualMappingScheme.h */,
+				F136CB1E2302166E00617000 /* PerceptualSchemas.h */,
+				F136CB182302103300617000 /* MotionAnalysisParameterRanges.h */,
+				F136CB1723020F5F00617000 /* ChordGeneration.h */,
+				F136CB1023020E1500617000 /* midi_event.h */,
+				F136CB1223020E1500617000 /* midi_message.h */,
+				F136CB1123020E1500617000 /* midi_utils.h */,
+				F136CB0E23020DF600617000 /* modernmidi.h */,
+				F136CB0C23020DAA00617000 /* MidiFile.h */,
+				F136CB0A23020BED00617000 /* RtMidi.h */,
+				F136CAFA23020A2000617000 /* concurrent_queue.h */,
+				F136CAF823020A2000617000 /* midi_file_reader.cpp */,
+				F136CAFE23020A2100617000 /* midi_file_reader.h */,
+				F136CAFF23020A2100617000 /* midi_file_writer.cpp */,
+				F136CAF923020A2000617000 /* midi_file_writer.h */,
+				F136CAF423020A2000617000 /* midi_input.cpp */,
+				F136CAFD23020A2100617000 /* midi_input.h */,
+				F136CB0123020A2100617000 /* midi_output.cpp */,
+				F136CAF723020A2000617000 /* midi_output.h */,
+				F136CAF623020A2000617000 /* midi_utils.cpp */,
+				F136CAFC23020A2100617000 /* music_theory.cpp */,
+				F136CAF323020A2000617000 /* music_theory.h */,
+				F136CB0223020A2100617000 /* port_manager.cpp */,
+				F136CB0023020A2100617000 /* port_manager.h */,
+				F136CAF523020A2000617000 /* timer.h */,
 				F125638B2199DA3E0032E0E9 /* ReadCSV.h */,
 				F15A1BD7217E544B00F34B3C /* UGENs.h */,
 				F1609500218B803A00F7DE45 /* PeakDetection.h */,
@@ -269,6 +398,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F136E90323034A1E00C445BD /* rtmidi.pc.in in Resources */,
+				F136E90523034A1E00C445BD /* rtmidi-config.in in Resources */,
 				BCA0F153EE9A4611ADBC5AFB /* CinderApp.icns in Resources */,
 				F12714652140C1BC006BFD00 /* BlackDot.mp4 in Resources */,
 			);
@@ -281,8 +412,23 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F136CB0623020A2100617000 /* music_theory.cpp in Sources */,
+				F136E95B230352AA00C445BD /* MidiMessage.cpp in Sources */,
+				F136E90623034A1E00C445BD /* RtMidi.cpp in Sources */,
 				6969B250F2BD4ECF914263DB /* feverRhythmCycleMain.cpp in Sources */,
+				F136CB0923020A2100617000 /* port_manager.cpp in Sources */,
+				F136E90723034A1E00C445BD /* rtmidi_c.cpp in Sources */,
+				F136E95D230352AA00C445BD /* MidiEventList.cpp in Sources */,
+				F136E95A230352AA00C445BD /* Binasc.cpp in Sources */,
+				F136CB0523020A2100617000 /* midi_file_reader.cpp in Sources */,
+				F136E95C230352AA00C445BD /* Options.cpp in Sources */,
+				F136CB0823020A2100617000 /* midi_output.cpp in Sources */,
 				14EFE1F4244A4E379861D3C0 /* Osc.cpp in Sources */,
+				F136CB0723020A2100617000 /* midi_file_writer.cpp in Sources */,
+				F136CB0423020A2100617000 /* midi_utils.cpp in Sources */,
+				F136E90423034A1E00C445BD /* MidiFile.cpp in Sources */,
+				F136E959230352AA00C445BD /* MidiEvent.cpp in Sources */,
+				F136CB0323020A2100617000 /* midi_input.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -312,55 +458,7 @@
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(HOME)/Applications";
 				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/opencv/3.4.2/lib;
-				OTHER_LDFLAGS = (
-					"\"$(CINDER_PATH)/lib/macosx/$(CONFIGURATION)/libcinder.a\"",
-					"-I/usr/local/Cellar/opencv/3.4.2/include/opencv",
-					"-I/usr/local/Cellar/opencv/3.4.2/include",
-					"-L/usr/local/Cellar/opencv/3.4.2/lib",
-					"-lopencv_stitching",
-					"-lopencv_superres",
-					"-lopencv_videostab",
-					"-lopencv_aruco",
-					"-lopencv_bgsegm",
-					"-lopencv_bioinspired",
-					"-lopencv_ccalib",
-					"-lopencv_dnn_objdetect",
-					"-lopencv_dpm",
-					"-lopencv_face",
-					"-lopencv_photo",
-					"-lopencv_fuzzy",
-					"-lopencv_hfs",
-					"-lopencv_img_hash",
-					"-lopencv_line_descriptor",
-					"-lopencv_optflow",
-					"-lopencv_reg",
-					"-lopencv_rgbd",
-					"-lopencv_saliency",
-					"-lopencv_stereo",
-					"-lopencv_structured_light",
-					"-lopencv_phase_unwrapping",
-					"-lopencv_surface_matching",
-					"-lopencv_tracking",
-					"-lopencv_datasets",
-					"-lopencv_dnn",
-					"-lopencv_plot",
-					"-lopencv_xfeatures2d",
-					"-lopencv_shape",
-					"-lopencv_video",
-					"-lopencv_ml",
-					"-lopencv_ximgproc",
-					"-lopencv_calib3d",
-					"-lopencv_features2d",
-					"-lopencv_highgui",
-					"-lopencv_videoio",
-					"-lopencv_flann",
-					"-lopencv_xobjdetect",
-					"-lopencv_imgcodecs",
-					"-lopencv_objdetect",
-					"-lopencv_xphoto",
-					"-lopencv_imgproc",
-					"-lopencv_core",
-				);
+				OTHER_LDFLAGS = "\"$(CINDER_PATH)/lib/macosx/$(CONFIGURATION)/libcinder.a\"";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.libcinder.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = MyNewProjectYay;
 				SYMROOT = ./build;
@@ -394,32 +492,6 @@
 				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/opencv/3.4.2/lib;
 				OTHER_LDFLAGS = (
 					"\"$(CINDER_PATH)/lib/macosx/$(CONFIGURATION)/libcinder.a\"",
-					"-I/usr/local/include/opencv",
-					"-I/usr/local/include",
-					libopencv_contrib.a,
-					libopencv_stitching.a,
-					libopencv_nonfree.a,
-					libopencv_superres.a,
-					libopencv_ocl.a,
-					libopencv_ts.a,
-					libopencv_videostab.a,
-					libopencv_gpu.a,
-					libopencv_photo.a,
-					libopencv_objdetect.a,
-					libopencv_legacy.a,
-					/usr/local/lib/libopencv_video.a,
-					/usr/local/lib/libopencv_ml.a,
-					/usr/local/lib/libopencv_calib3d.a,
-					/usr/local/lib/libopencv_features2d.a,
-					/usr/local/lib/libopencv_highgui.a,
-					/usr/local/share/OpenCV/3rdparty/lib/libIlmImf.a,
-					/usr/local/share/OpenCV/3rdparty/lib/liblibjasper.a,
-					/usr/local/share/OpenCV/3rdparty/lib/liblibtiff.a,
-					/usr/local/share/OpenCV/3rdparty/lib/liblibpng.a,
-					/usr/local/share/OpenCV/3rdparty/lib/liblibjpeg.a,
-					/usr/local/lib/libopencv_imgproc.a,
-					/usr/local/lib/libopencv_flann.a,
-					/usr/local/lib/libopencv_core.a,
 					/usr/local/share/OpenCV/3rdparty/lib/libzlib.a,
 					"-lstdc++",
 				);
@@ -467,6 +539,10 @@
 					"\"$(CINDER_PATH)/include\"",
 					/usr/local/Cellar/opencv/3.4.2/include,
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/usr/local/lib,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
@@ -508,6 +584,10 @@
 				HEADER_SEARCH_PATHS = (
 					"\"$(CINDER_PATH)/include\"",
 					/usr/local/Cellar/opencv/3.4.2/include,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/usr/local/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				SDKROOT = macosx;

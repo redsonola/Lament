@@ -35,15 +35,36 @@ class MocapDeviceData
         //the default is wiimote
         virtual double getAccelMax(){ return WIIMOTE_ACCELMAX; };
         virtual double getAccelMin(){ return WIIMOTE_ACCELMIN; };
+    
+        std::string mWho;
     public:
                                                                                                                 //see documentation of these angles in the main
         enum DataIndices { INDEX=0, TIME_STAMP=1, ACCELX=2, ACCELY=3, ACCELZ=4, GYROX=11, GYROY=12, GYROZ=13, BONEANGLE_TILT=14, BONEANGLE_ROTATE=15, BONEANGLE_LATERAL=16, RELATIVE_TILT=17, RELATIVE_ROTATE=18, RELATIVE_LATERAL=19, ANGVEL_TILT=20, ANGVEL_ROTATE=21, ANGVEL_LATERAL=22, QX=23, QY=24, QZ=25, QA=26 };
         enum MocapDevice { WIIMOTE=0, IPHONE=1, NOTCH=2 };
-    
+        enum SendingDevice { UNSPECIFIED=0, ANDROID=1, IOS=2 };
+        //not SUPER happy about this schema -> basically if you want it to be unspecified DO NOT SET IT.
+        std::vector<std::string> mSendingDeviceStrings;
+        std::vector<SendingDevice> mAvailableSendingDevices;
+
         MocapDevice getDeviceType()
         {
             return device;
         };
+    
+        SendingDevice getSendingDevice()
+        {
+            return mSendingDevice;
+        }
+    
+        void setSendingDevice(std::string sendingDevice)
+        {
+            auto iter = std::find(mSendingDeviceStrings.begin(), mSendingDeviceStrings.end(), sendingDevice);
+            int index = iter - mSendingDeviceStrings.begin();
+            
+            if(index > mSendingDeviceStrings.size()-1)
+            std::cout << "Warning! " << sendingDevice << " is not recognized by this system.\n";
+            else mSendingDevice = mAvailableSendingDevices[index];
+        }
     
         //scale accel to 0 - 1 -- obv. not needed if wiimote
         //assumes all axes are on same scale
@@ -197,12 +218,15 @@ class MocapDeviceData
             
             device = MocapDevice::WIIMOTE;
             isAccelScaled = false;
+            
+            mSendingDeviceStrings = {"Android", "iOS"};
+            mAvailableSendingDevices = { SendingDevice::ANDROID, SendingDevice::IOS };
+            mSendingDevice = SendingDevice::UNSPECIFIED; 
         }
     
 protected:
     MocapDevice device; // which device
-
-    
+    SendingDevice mSendingDevice;
 };
     
 //assumes syntien
