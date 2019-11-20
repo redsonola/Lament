@@ -129,6 +129,7 @@
 		F15A1BD8217E558B00F34B3C /* MotionCaptureData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MotionCaptureData.h; path = ../include/MotionCaptureData.h; sourceTree = "<group>"; };
 		F15A1BD9217E614B00F34B3C /* Sensor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Sensor.h; path = ../include/Sensor.h; sourceTree = "<group>"; };
 		F1609500218B803A00F7DE45 /* PeakDetection.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PeakDetection.h; path = ../include/PeakDetection.h; sourceTree = "<group>"; };
+		F17144642385C5EB006AB257 /* SensorData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SensorData.h; sourceTree = "<group>"; };
 		F1E58EE0212B7788000AB79C /* OpenCL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = OpenCL.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -231,6 +232,7 @@
 		29B97315FDCFA39411CA2CEA /* Headers */ = {
 			isa = PBXGroup;
 			children = (
+				F17144642385C5EB006AB257 /* SensorData.h */,
 				F136E952230352A900C445BD /* Binasc.cpp */,
 				F136E950230352A800C445BD /* Binasc.h */,
 				F136E94E230352A800C445BD /* MidiEvent.cpp */,

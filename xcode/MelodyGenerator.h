@@ -30,7 +30,7 @@ namespace CRCPMotionAnalysis {
 
     class MelodyGenerator : public UGEN
     {
-    private:
+    protected:
         std::vector<MelodyGeneratorAlgorithm *> generators; //a collection of factor oracles <-- refactor into part of a super melodic algorithm class
 //        float fo_probability;
         
@@ -78,6 +78,11 @@ namespace CRCPMotionAnalysis {
         {
             assert(i<generators.size() && i>=0);
             return generators[i]->getBPM();
+        }
+        
+        size_t generatorSize()
+        {
+            return generators.size();
         }
         
         std::string getFile()
@@ -192,6 +197,88 @@ namespace CRCPMotionAnalysis {
 
     };
 
-}
+    //for the cabaret class, chooses which trained algorithm to output from based on arm height
+    //TODO: find a way of connecting btw the different algorithms... creating connecting notes? in the key?
+    class CabaretMelodyGenerator : public MelodyGenerator
+    {
+    protected:
+        
+        //NOTE: that this class expects that melody algorithms will be added in from pitch class low to high.
+        //the vector of melody algorithms is defined in the parent.
+
+
+        bool leftArm; // which arm height is correlated to pitch??
+        ArmHeight *height;
+    public:
+        
+        CabaretMelodyGenerator( float minbs=0, float maxbs=1, int _maxNotesGenerated = 4, float _sparseShortNoteCutOff = 1.0f/8.0f) :
+            MelodyGenerator(minbs, maxbs, _maxNotesGenerated, _sparseShortNoteCutOff)
+        {
+            leftArm = true;
+            height = NULL;
+        }
+        
+        //else it is right
+        void setIfLeftArm(bool isLeft)
+        {
+            leftArm = isLeft; 
+        }
+        
+        void setArmHeightUGEN(ArmHeight *h)
+        {
+            height = h;
+        }
+        
+        bool hasArmHeight()
+        {
+            return height!=NULL;
+        }
+
+        virtual void update(float seconds=0)
+        {
+            if(generators.size() < 2)
+            {
+                std::cerr << "MelodyGenerator can't generate! Needs at least 2 algorithms!\n";
+                return;
+            }
+            
+            if(!height) //if arm height is null, then don't generate.
+            {
+                //getting rid of error messages bc this is mostly done on purpose. Can turn it on for unexpected behavior.
+//                std::cerr << "ArmHeight is NULL! Must provide to generate!\n";
+                return;
+            }
+            
+            //get the arm height
+            float armHeight; // this should be scaled 0 to 1
+            if(leftArm)
+            {
+                armHeight = height->getLeftArmHeight();
+            }
+            else
+            {
+                armHeight = height->getRightArmHeight();
+            }
+            
+            //decide which generator!
+            int index = std::floor(((float) generators.size()) * armHeight);
+//            std::cout << "index: " << index<< " arm height: " << armHeight << std::endl;
+            if(index < 0) index = 0;
+            if(index >= generators.size()) index = generators.size()-1;
+            
+            
+            if(oneToOneMode)
+                melodyFragment.push_back(generators[index]->generateNext());
+            else
+            {
+                //react to busy/sparse
+                std::cout << "This will not react to busy sparse since this generator is being used in one to one mode\n";
+            }
+        };
+        
+    };
+
+
+    }
 
 #endif /* MelodyGenerator_h */

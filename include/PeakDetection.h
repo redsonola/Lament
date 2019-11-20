@@ -74,9 +74,9 @@ protected:
     Derivative derivative; //we need this to find the peaks according to matlab func. using
     int newSamples;
     
-    //send a note for each peak (obv. optional)
-    MelodyGenerator *melodyGenerator;
-    MidiNote note;
+//    //send a note for each peak (obv. optional)
+//    MelodyGenerator *melodyGenerator;
+//    MidiNote note;
     
 public:
     FindPeaks( float waitBetween, SignalAnalysis *s, int id_, std::string whichBodyPart_="", int bufferSize=12) : SignalAnalysis( s, bufferSize, NULL ), derivative(s, buffersize)
@@ -94,14 +94,14 @@ public:
         whichAxisPeak = MocapDeviceData::DataIndices::ACCELX; //just a default
         newSamples = 0;
         
-        melodyGenerator = NULL;
-        note = NULL;
+//        melodyGenerator = NULL;
+//        note = NULL;
     };
     
-    void setMelodyGenerator(MelodyGenerator *melodyGenerator_)
-    {
-        melodyGenerator = melodyGenerator_;
-    }
+//    void setMelodyGenerator(MelodyGenerator *melodyGenerator_)
+//    {
+//        melodyGenerator = melodyGenerator_;
+//    }
     
     virtual int getNewSampleCount()
     {
@@ -347,12 +347,12 @@ public:
         
         curPeakHeight = findNormalizedPeakHeight(peakx, peaky, peakz); //find how big the peak was.
         
-        if(combinedPeak && melodyGenerator != NULL)
-        {
-            std::vector<MidiNote> notes = melodyGenerator->getCurNotes();
-            if(notes.size()>0)
-                note = notes[0];
-        }
+//        if(combinedPeak && melodyGenerator != NULL)
+//        {
+//            std::vector<MidiNote> notes = melodyGenerator->getCurNotes();
+//            if(notes.size()>0)
+//                note = notes[0];
+//        }
         
         newSamples = 0; //reset
     };
@@ -371,7 +371,7 @@ public:
         peakMessage.append(whichBodyPart); 
         peakMessage.append(_id);
         peakMessage.append(isPeak);
-        peakMessage.append(note.pitch); 
+//        peakMessage.append(note.pitch);
         msgs.push_back(peakMessage);
         return msgs;
     }

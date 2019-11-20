@@ -21,6 +21,8 @@
 #define CI_OSCMESSAGE "/CBIS/CI" //send contraction index
 #define ARMHEIGHT_OSCMESSAGE "/CBIS/ArmHeight" //send relative arm height index
 #define VERTICALITY_OSCMESSAGE "/CBIS/Verticality" //send verticality
+#define MIDINOTE_OSCMESSAGE "/CBIS/MidiNote"
+
 
 #define SEND_TO_WEKINATOR 1
 #define WEK_MESSAGE "/wek/inputs"
@@ -34,6 +36,7 @@
 #define EXPMUSIC_MELODY_INSTRUMENT "/InteractiveTango/Experimental/Melody/Instrument"
 #define EXPMUSIC_ACCOMP_INSTRUMENT "/InteractiveTango/Experimental/Accompaniment/Instrument"
 #define EXPMUSIC_SECTION "/InteractiveTango/Experimental/Section"
+
 
 #include "cinder/app/App.h"
 #include "cinder/app/RendererGl.h"
@@ -80,6 +83,11 @@
 #define DESTPORT 8888
 #define WEKPORT 6448
 #define LOCALPORT3 8889
+#define LOCALPORT4 8890
+
+
+#define REMOTELAPTOP_PORT 3333
+#define REMOTELAPTOP_ADDRESS "192.168.1.88"
 
 #define MAX_NUM_OF_WIIMOTES 6 //limitation of bluetooth class 2
 #define PHONE_ID "7" //this assumes only one phone using Syntien or some such -- can modify if you have more...
@@ -117,6 +125,7 @@ protected:
     
     osc::SenderUdp             mSender;
     osc::SenderUdp             mWekSender;
+    osc::SenderUdp             mRemoteLaptopSender;
     
     //moving to 3d drawing
     void drawGrid(float size, float step);
@@ -160,9 +169,11 @@ protected:
     //file
     CRCPMotionAnalysis::SaveOSC *saveOSC;
     CRCPMotionAnalysis::PlayOSC *playOSC;
+    
+    int testOSCNumber;
 };
 
-FeverRhythmCycleMain::FeverRhythmCycleMain() : mSender(LOCALPORT, DESTHOST, DESTPORT), mReceiver( LOCALPORT2 ), mWekSender(LOCALPORT3, DESTHOST, WEKPORT)
+FeverRhythmCycleMain::FeverRhythmCycleMain() : mSender(LOCALPORT, DESTHOST, DESTPORT), mReceiver( LOCALPORT2 ), mWekSender(LOCALPORT3, DESTHOST, WEKPORT), mRemoteLaptopSender(LOCALPORT4, REMOTELAPTOP_ADDRESS, REMOTELAPTOP_PORT)
 {
     
 }
@@ -331,7 +342,7 @@ void FeverRhythmCycleMain::printNotchValues(const osc::Message &message)
                 break;
         }
     }
-    std::cout << std::endl;
+//    std::cout << std::endl;
 
 }
 
@@ -590,6 +601,8 @@ void FeverRhythmCycleMain::createNotchMotionData(std::string _id, std::string wh
 //set up osc
 void FeverRhythmCycleMain::setup()
 {
+    testOSCNumber=0;
+
     printKeyboardMenu();
     
     mChangePeakThresholdMode = false;
@@ -615,6 +628,14 @@ void FeverRhythmCycleMain::setup()
         quit();
     }
     
+    try{
+        mRemoteLaptopSender.bind();
+    }
+    catch( osc::Exception &e)
+    {
+        CI_LOG_E( "Error binding" << e.what() << " val: " << e.value() );
+        quit();
+    }
     
     //opens a file to save incoming OSC
     fs::path fpath = getSaveFilePath();
@@ -636,7 +657,7 @@ void FeverRhythmCycleMain::setup()
             updateWiiValues(msg);
         });
     }
-    
+    testOSCNumber = 0;
     mReceiver.setListener( NOTCH_MESSAGE, [&]( const osc::Message &msg ){
         saveOSC->add(msg, getElapsedSeconds()); //add this line to save the OSC
         updateNotchValues(msg);
@@ -771,6 +792,10 @@ void FeverRhythmCycleMain::keyUp(KeyEvent event )
 //update entities and ugens and send OSC, if relevant
 void FeverRhythmCycleMain::update()
 {
+//    std::cout << "updating" << ":" << testOSCNumber << std::endl;
+//    std::cout.flush();
+//    testOSCNumber++;
+    
     updateCamera();
     mShiftKeyDown = false;
     seconds = getElapsedSeconds(); //clock the time update is called to sync incoming messages
@@ -793,6 +818,7 @@ void FeverRhythmCycleMain::update()
         for(int i=0; i<msgs.size(); i++)
         {
             mSender.send(msgs[i]);
+            mRemoteLaptopSender.send(msgs[i]); //also send to the remote laptop
         }
     }
     

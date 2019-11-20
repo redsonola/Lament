@@ -568,10 +568,8 @@ public:
                         //                        std::cout << outdata1[i]->getData(j) << ",";
                         
                     }
-                    
-                    
+
 //                    std::cout << std::endl;
-                    
                     msgs.push_back(msg);
                     
                 }
@@ -1177,6 +1175,7 @@ public:
         std::vector<double> length;
         std::vector<ci::vec3> anchorPos;
         std::vector<bool> drawDown;
+    
     public:
         BoneFactory(double bodyStartX=0)
         {
@@ -1621,16 +1620,19 @@ public:
         virtual void update(float seconds = 0)
         {
             mLeftArmHeight= armDistanceFromHipinY("Left");
-            const float MAX_RECORDED_LEFTARM_HEIGHT_EST = 17.8993;
-            const float MIN_RECORDED_LEFTARM_HEIGHT_EST = 13.842;
+            const float MAX_RECORDED_LEFTARM_HEIGHT_EST = 130; //144
+            const float MIN_RECORDED_LEFTARM_HEIGHT_EST = 95;  //10
             
             mRightArmHeight= armDistanceFromHipinY("Right");
-            const float MAX_RECORDED_RIGHTARM_HEIGHT_EST = 16.1399;
-            const float MIN_RECORDED_RIGHTARM_HEIGHT_EST = 13.8946;
+            const float MAX_RECORDED_RIGHTARM_HEIGHT_EST = 130;
+            const float MIN_RECORDED_RIGHTARM_HEIGHT_EST = 95;
             
-            const float MAX_RECORDED_ARM_HEIGHT_EST = 32.3537;
-            const float MIN_RECORDED_ARM_HEIGHT_EST = 27.7449;
+            const float MAX_RECORDED_ARM_HEIGHT_EST = MAX_RECORDED_LEFTARM_HEIGHT_EST + MAX_RECORDED_RIGHTARM_HEIGHT_EST;
+            const float MIN_RECORDED_ARM_HEIGHT_EST = MIN_RECORDED_LEFTARM_HEIGHT_EST + MIN_RECORDED_RIGHTARM_HEIGHT_EST;
             mArmHeight = mLeftArmHeight + mRightArmHeight;
+            
+//            std::cout << "mArmHeight:" << mArmHeight << " mLeftArmHeight: " << mLeftArmHeight << " mRightArmHeight:" << mRightArmHeight << std::endl;
+
             
             //make sure left & right scaling is done AFTER scalling the combined arm heights since that is based on the unscaled sum
             mArmHeight = scaledValue0to1(mArmHeight, MIN_RECORDED_ARM_HEIGHT_EST, MAX_RECORDED_ARM_HEIGHT_EST);
@@ -1646,9 +1648,22 @@ public:
             ci::vec3 pt2 =  figure->getBone(whichArm+"UpperArm")->getAnchorPos();
             ci::vec3 pt3 =  figure->getBone(whichArm+"ForeArm")->getAnchorPos();
             
-            return (pt2.y-pt.y) + (pt3.y-pt.y);
+            return (pt2.y-pt.y)*(pt2.y-pt.y) + (pt3.y-pt.y)*(pt3.y-pt.y);
+            return (pt3.y-pt.y)*(pt3.y-pt.y); //we only care about this point.
 
         }
+        
+        float getLeftArmHeight()
+        {
+            return mLeftArmHeight;
+        }
+        
+
+        float getRightArmHeight()
+        {
+            return mRightArmHeight;
+        }
+        
         
         std::vector<ci::osc::Message> getOSC()
         {

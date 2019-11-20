@@ -26,15 +26,18 @@ protected:
     OutputSignalAnalysis *avgSignal;
 
     bool bodyPartInit = false; //whether we have set up the body part ugens
-    int bodyPartID; //this will correspond to wii mote # or some OSC id'ing the sensor
+    int bodyPartID;
+    int outsideID; //this will correspond to wii mote # or some OSC id'ing the sensor
     std::string whichBodyPart; //which bone it is
     MocapDeviceData::SendingDevice sendingDevice; //only accept data from one sending device (1st one)
 
     int count=0;
     
     //for the melodic/music output -- perhaps this is a temporary place...
-    MelodyGenerator *melodyGenerator;
+    CabaretMelodyGenerator *melodyGenerator;
     std::vector<FactorOracle *> fo;
+    MidiNote note;
+    bool hasNotes;
     
 public:
     enum BodyPart{ HIP=0, CHESTBOTTOM=1, LEFTUPPERARM=2, LEFTHAND=3, LEFTFOREARM=4,
@@ -43,6 +46,7 @@ public:
 
     BodyPartSensor(){
         bodyPartInit = false;
+        hasNotes = true;
     };
     
     bool isInit()
@@ -59,8 +63,9 @@ public:
     {
         //which body part is the sensor of?
         whichBodyPart = sensor->getDeviceID();  //yip for now.
+        std::cout << whichBodyPart <<" ID: " << idz << std::endl;
         bodyPartInit = true;
-        bodyPartID = idz;
+        outsideID = idz;
         
         //add all the basic signal analysis that happens for ea. sensor
         InputSignal *signal_input = new InputSignal(idz); //1. create an input
@@ -106,7 +111,7 @@ public:
                                                //you may want to vary this btw x, y, z instead of having the values for everything depending on how it is placed.
         peaks = new FindPeaks(WAIT_BETWEEN_PEAKS_DEFAULT,avgfilter, idz, whichBodyPart);
         peaks->setThreshes(THRESH_DEFAULT, THRESH_DEFAULT, THRESH_DEFAULT);
-        peaks->setMelodyGenerator(melodyGenerator); 
+//        peaks->setMelodyGenerator(melodyGenerator);
         bodyPart.push_back(peaks);
         
 
@@ -117,26 +122,52 @@ public:
     void loadGeneratedMelodies()
     {
         //for the melodic/music output -- perhaps this is a temporary place...
-        melodyGenerator = new MelodyGenerator( 1, 1, 1 );
+        melodyGenerator = new CabaretMelodyGenerator();
         
         std::string folder = "/Users/courtney/Documents/cycling rhythms vocal experiment-uptodate/scores/track 1 midi files/";
-        std::string descant = "leftHandMelodyOptions.mid";
-//        std::string soprano = "firstShotFullMelody.mid";
-//        std::string tenor = "firstShotTenor.mid";
+        
+        std::string descant = "highMelodyOptions.mid";
+        std::string soprano = "middleMelodyOptions.mid";
+        std::string tenor = "lowMelodyOptions.mid";
 
         //TODO: put these in the same octave...
         //create new melody generator section -- TODO: REFACTOR!!!!!!!!
-        FactorOracle *f = new FactorOracle();
-        f->train(folder + descant, 1);
-//        f->train(folder + soprano, 2);
-//        f->train(folder + tenor, 2);
+        FactorOracle *f;
         
+        //TODO: should refactor into a loop. note.
+        f = new FactorOracle();
+        f->train(folder + tenor, 1);
         melodyGenerator->addGeneratorAlgorithm(f);
         fo.push_back(f);
+        
+        f = new FactorOracle();
+        f->train(folder + soprano, 1);
+        melodyGenerator->addGeneratorAlgorithm(f);
+        fo.push_back(f);
+        
+        
+        f = new FactorOracle();
+        f->train(folder + descant, 1);
+        melodyGenerator->addGeneratorAlgorithm(f);
+        fo.push_back(f);
+        
+        //TODO: In melody generator, pick which one based on arm height....
         
         melodyGenerator->turnOn1to1();
         bodyPart.push_back(melodyGenerator);
     };
+    
+    void setArmHeightUGENandIsLeftArmForMelodyGenerator(ArmHeight *h, bool isLeft)
+    {
+        if(!melodyGenerator)
+        {
+            std::cerr << "Melody Generator is NULL when attempting to set arm params!\n";
+            return;
+        }
+        
+        melodyGenerator->setArmHeightUGEN(h);
+        melodyGenerator->setIfLeftArm(isLeft);
+    }
     
     inline OutputSignalAnalysis *getAvgSignal()
     {
@@ -175,6 +206,17 @@ public:
             {
                 msgs.push_back(nmsgs[j]);
             }
+        }
+        
+        if(hasNotes)
+        {
+            //TODO: create the OSC message to send the notes.
+            hasNotes = false;
+            ci::osc::Message msg;
+            msg.setAddress(MIDINOTE_OSCMESSAGE);
+            msg.append(bodyPartID);
+            msg.append(note.pitch);
+            msgs.push_back(msg);
         }
         return msgs;
     };
@@ -215,6 +257,20 @@ public:
             bodyPart[i]->update(seconds);
         }
         
+        //send the midi notes
+        if(peaks->getCombinedPeak() && melodyGenerator)
+        {
+            if(((CabaretMelodyGenerator *)melodyGenerator)->hasArmHeight())
+            {
+                std::vector<MidiNote> notes = melodyGenerator->getCurNotes();
+                if(notes.size()>0)
+                {
+                    hasNotes = true;
+                    note = notes[0];
+                }
+            }
+        }
+        
     };
 
 };
@@ -225,6 +281,7 @@ public:
         std::vector<BodyPartSensor * > bodyParts; //assuming sensor is measuring some body part
         NotchBoneFigure *figure;
         std::vector<FigureMeasure * > figureMeasures;
+        ArmHeight *armHeight;
 
     public:
         Entity() : UGEN()
@@ -241,8 +298,9 @@ public:
 //            double w = ci::app::getWindowWidth() * 0.5;
             figure = new NotchBoneFigure();
             
+            armHeight = new ArmHeight(figure);
             figureMeasures.push_back(new ContractionIndex(figure));
-            figureMeasures.push_back(new ArmHeight(figure));
+            figureMeasures.push_back(armHeight);
 
         }
         bool bodyPartExists(std::string whichPart)
@@ -271,7 +329,15 @@ public:
             
             figure->setInputSignal(part->getWhichBodyPart(), part->getAvgSignal());
             part->setBoneID(figure->getBoneID(part->getWhichBodyPart()));
+            
+            //only set the armHeight for hands
+            if( !part->getWhichBodyPart().compare("LeftHand") || !part->getWhichBodyPart().compare("RightHand"))
+            {
+                part->setArmHeightUGENandIsLeftArmForMelodyGenerator(armHeight, !part->getWhichBodyPart().compare("LeftHand"));
+            }
+            
             bodyParts.push_back(part);
+            
         }
         
         //this is maybe toooo much
@@ -337,6 +403,8 @@ public:
             std::vector<ci::osc::Message> nmsgs;
             std::vector<ci::osc::Message> nmsgs2;
             
+//            std::cout << bodyParts.size() << std::endl;
+                        
             for (int i=0; i<bodyParts.size(); i++)
             {
                 nmsgs = bodyParts[i]->getOSC();
@@ -348,6 +416,8 @@ public:
 //                    //get melody notes... for the hand only... for now
 //
 //                }
+//                std::cout << bodyParts.size() << std::endl;
+
                 
                 for(int j=0; j<nmsgs.size(); j++)
                 {
